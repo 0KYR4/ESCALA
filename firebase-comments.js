@@ -69,7 +69,7 @@ function makePanel(serviceId, initialTarget={}) {
   const pane = element('section','esc-comment-panel');
   const svc = G[serviceId];
   pane.append(element('h3','', 'Comentários · '+(svc?.name||serviceId)));
-  pane.append(element('p','esc-comment-sub','Os comentários ficam salvos no Firebase e aparecem para todas as pessoas que acessarem esta página. A Supervisão continua exclusiva do Gantt.'));
+  pane.append(element('p','esc-comment-sub','Os comentários são públicos e aparecem para todas as pessoas que acessarem esta página. Não inclua dados confidenciais ou de clientes. O nome informado não é verificado. A Supervisão continua exclusiva do Gantt.'));
   const grid = element('div','esc-comment-fields');
   const authorWrap=element('div','esc-comment-field'), targetWrap=element('div','esc-comment-field');
   const authorLabel=element('label','', 'Seu nome'), targetLabel=element('label','', 'Sobre qual atividade?');
@@ -213,7 +213,6 @@ function addFeatures(){
     aside?.append(notice);
   }
 }
-addFeatures();
 async function init(){
   if(!cfg || !cfg.projectId || !cfg.apiKey){esc.error='projeto Firebase ainda não configurado';if(mode===2)renderMap();return;}
   try{
@@ -229,4 +228,4 @@ async function init(){
     if(mode===2)renderMap();
   }catch(e){esc.error=e.message||'erro de inicialização';if(mode===2)renderMap();}
 }
-init();
+init().finally(addFeatures);
