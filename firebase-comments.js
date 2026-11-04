@@ -120,25 +120,45 @@ function makePanel(serviceId, initialTarget={}) {
     ordered.forEach(note=>{
       const tile=element('article','esc-comment-note');
       const meta=element('div','esc-comment-note-meta');
+      const inline=element('div');
       meta.append(element('span','',(note.author||'Sem nome')+' · '+dateLabel(note.createdAt)));
       if(note.ownerUid===esc.user?.uid){
         const ctr=element('span','esc-comment-actions');
         const edit=button('Editar'),del=button('Excluir');
-        edit.onclick=async()=>{
-          const updated=prompt('Editar comentário:',note.text);
-          if(updated===null)return;
-          if(!updated.trim()||updated.trim().length>2000){alert('O comentário precisa ter entre 1 e 2000 caracteres.');return;}
-          try {await esc.api.updateDoc(esc.api.doc(esc.db,collName,note.id),{text:updated.trim(),updatedAt:esc.api.serverTimestamp()});}
-          catch(e){alert('Erro ao editar: '+e.message);}
+        const message=element('p','esc-comment-sub');message.setAttribute('role','status');
+        const editor=element('div','esc-comment-field');
+        const cancelDelete=button('Cancelar exclusão');cancelDelete.hidden=true;
+        cancelDelete.onclick=()=>{del.textContent='Excluir';cancelDelete.hidden=true;message.textContent='';};
+        edit.onclick=()=>{
+          if(editor.childElementCount)return;
+          cancelDelete.onclick();
+          const input=element('textarea');input.value=note.text;input.maxLength=2000;
+          input.setAttribute('aria-label','Editar comentário');
+          const saveEdit=button('Salvar edição','primary'),cancelEdit=button('Cancelar edição');
+          cancelEdit.onclick=()=>{editor.replaceChildren();message.textContent='';};
+          saveEdit.onclick=async()=>{
+            const updated=input.value.trim();
+            if(!updated||updated.length>2000){message.textContent='O comentário precisa ter entre 1 e 2000 caracteres.';input.focus();return;}
+            saveEdit.disabled=true;cancelEdit.disabled=true;
+            try{await esc.api.updateDoc(esc.api.doc(esc.db,collName,note.id),{text:updated,updatedAt:esc.api.serverTimestamp()});}
+            catch(e){message.textContent='Erro ao editar: '+e.message;saveEdit.disabled=false;cancelEdit.disabled=false;}
+          };
+          editor.append(input,saveEdit,cancelEdit);input.focus();
         };
         del.onclick=async()=>{
-          if(!confirm('Excluir este comentário online para todos?'))return;
-          try {await esc.api.deleteDoc(esc.api.doc(esc.db,collName,note.id));}
-          catch(e){alert('Erro ao excluir: '+e.message);}
+          if(cancelDelete.hidden){
+            editor.replaceChildren();del.textContent='Confirmar exclusão';cancelDelete.hidden=false;
+            message.textContent='Excluir este comentário online para todos?';return;
+          }
+          del.disabled=true;cancelDelete.disabled=true;
+          try{await esc.api.deleteDoc(esc.api.doc(esc.db,collName,note.id));}
+          catch(e){message.textContent='Erro ao excluir: '+e.message;del.disabled=false;cancelDelete.disabled=false;}
         };
+        inline.append(editor,message);
+        ctr.append(cancelDelete);
         ctr.append(edit,del);meta.append(ctr);
       }
-      tile.append(meta,element('div','esc-comment-note-task',taskLabel(note)),element('div','esc-comment-note-body',note.text));
+      tile.append(meta,element('div','esc-comment-note-task',taskLabel(note)),element('div','esc-comment-note-body',note.text),inline);
       list.append(tile);
     });
   };
