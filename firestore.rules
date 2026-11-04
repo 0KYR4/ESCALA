@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /escala_comments/{commentId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['serviceId','stage','task','author','text','ownerUid','createdAt','updatedAt'])
+        && request.resource.data.keys().hasAll(['serviceId','stage','task','author','text','ownerUid','createdAt','updatedAt'])
+        && request.resource.data.serviceId is string
+        && request.resource.data.serviceId.matches('^[A-Za-z0-9_-]{1,40}$')
+        && request.resource.data.stage is string && request.resource.data.stage.size() <= 120
+        && request.resource.data.task is string && request.resource.data.task.size() <= 250
+        && request.resource.data.author is string && request.resource.data.author.size() > 0 && request.resource.data.author.size() <= 80
+        && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 2000
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','updatedAt'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 2000
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+    }
+    match /{other=**} { allow read, write: if false; }
+  }
+}
