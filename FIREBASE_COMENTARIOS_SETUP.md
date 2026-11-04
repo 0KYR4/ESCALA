@@ -14,10 +14,15 @@ O plano é Spark; não foi vinculado faturamento. Analytics e Gemini não foram 
 - Os comentários e as contas temporárias desse teste foram removidos ao terminar. O teste não usa nem imprime credenciais administrativas.
 - A prévia `firebase-preview.html` foi testada no GitHub Pages: envio real, comentário persistente após recarga, mesmo comentário nas visões Árvore e Gantt × Trello, botão de atividade selecionando o destino correto.
 - `node tests/firebase-smoke.mjs --verify-ui` passou em **21 verificações**, incluindo a leitura do comentário enviado pela interface por uma nova sessão anônima independente.
-- A aba de teste travou ao abrir o `confirm()` de exclusão no navegador integrado. O comentário temporário da interface pode continuar no banco: texto `Validação temporária ESCALA 2026-11-04 — remover após teste.`. Não excluir comentários de outras pessoas durante a limpeza.
-- A exclusão pelo dono e o bloqueio de exclusão por outro usuário passaram nos testes reais da API; a confirmação de exclusão na interface ainda precisa ser concluída.
-- Corrigida a restauração do serviço selecionado quando o Firebase termina de carregar. A prévia usa scripts versionados `escala-b9a22-2`; falta confirmar essa última correção na interface.
-- `index.html` **não foi substituído**. A publicação principal continua pendente da conclusão da validação da interface e limpeza do comentário temporário.
+- Edição e exclusão usam controles dentro da própria página, evitando janelas nativas que bloqueavam o navegador integrado.
+- Na interface da prévia, passaram: editar e salvar, cancelar a exclusão preservando o comentário, confirmar exclusão e observar a lista vazia. O comentário temporário da interface foi removido.
+- Confirmada a restauração do serviço selecionado quando o Firebase termina de carregar. Os scripts são versionados `escala-b9a22-3`.
+- Após a validação, `index.html` recebeu o mesmo conteúdo da prévia. Os dados originais do Gantt/Trello foram comparados e preservados.
+
+## Hospedagem
+- Site: GitHub Pages, em `https://0kyr4.github.io/ESCALA/`.
+- Banco e login dos comentários: Firebase (Firestore e Authentication).
+- **Firebase Hosting não foi configurado.** A integração não altera a hospedagem do site.
 
 ## Como ativar
 1. Usar o projeto **ESCALA** (`escala-b9a22`), sem criar outro projeto.
