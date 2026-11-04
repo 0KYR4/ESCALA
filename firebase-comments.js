@@ -211,6 +211,7 @@ function addFeatures(){
     const aside=document.querySelector('aside.left');
     const notice=element('p','esc-comment-sub',statusText());
     aside?.append(notice);
+    if(selection)select(selection.id,selection.type);
   }
 }
 async function init(){

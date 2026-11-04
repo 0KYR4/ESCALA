@@ -240,6 +240,6 @@ function setMode(k){
 $('tab1').onclick=()=>setMode(1);$('tab2').onclick=()=>setMode(2);$('zoomin').onclick=()=>zoom(1.3);$('zoomout').onclick=()=>zoom(1/1.3);$('fit').onclick=fit;$('reset').onclick=()=>setMode(mode);$('q').oninput=()=>{nav();if(mode===2){renderMap();return}let q=$('q').value.toLowerCase().trim();nodes.forEach(n=>n.group.classList.toggle('mutednode',!!q&&!n.search.includes(q)))};
 const vp=$('viewport'),sv=$('svg');sv.addEventListener('pointerdown',e=>{if(e.target.closest?.('.node'))return;dragging=true;sv.classList.add('dragging');start={x:e.clientX,y:e.clientY,tx,ty};sv.setPointerCapture(e.pointerId)});sv.addEventListener('pointermove',e=>{if(!dragging)return;tx=start.tx+e.clientX-start.x;ty=start.ty+e.clientY-start.y;transform()});sv.addEventListener('pointerup',()=>{dragging=false;sv.classList.remove('dragging')});sv.addEventListener('wheel',e=>{e.preventDefault();let r=vp.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;let ns=Math.min(2.8,Math.max(.18,scale*(e.deltaY<0?1.08:1/1.08)));tx=x-(x-tx)*ns/scale;ty=y-(y-ty)*ns/scale;scale=ns;transform()},{passive:false});window.addEventListener('resize',()=>{if(mode===1)fit()});setMode(1);
 </script>
-<script src="./firebase-config.js?v=escala-b9a22-1"></script>
-<script type="module" src="./firebase-comments.js?v=escala-b9a22-1"></script>
+<script src="./firebase-config.js?v=escala-b9a22-2"></script>
+<script type="module" src="./firebase-comments.js?v=escala-b9a22-2"></script>
 </body></html>

@@ -42,6 +42,11 @@ try {
   }
   const [a, b] = sessions;
   assert.notEqual(a.localId, b.localId);
+  if (process.argv.includes('--verify-ui')) {
+    const result = await request(`${endpoint}:runQuery`, 'POST', { structuredQuery: { from: [{ collectionId: 'escala_comments' }], where: { fieldFilter: { field: { fieldPath: 'serviceId' }, op: 'EQUAL', value: { stringValue: '01' } } } } }, b.idToken);
+    check(result, 200, 'independent session reads browser-created comment');
+    assert.ok(result.data.some(row => row.document?.fields?.text?.stringValue === 'Validação temporária ESCALA 2026-11-04 — remover após teste.'), 'Browser-created comment not found online');
+  }
   const name = `${root}/escala_comments/validation-${Date.now()}`;
   const base = { serviceId: '01', stage: '', task: '', author: 'Teste de integração', text: 'Teste temporário de sincronização ESCALA', ownerUid: a.localId };
   check(await commit([write(name, base, true)], a), 200, 'create comment as owner');
