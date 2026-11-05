@@ -1,10 +1,9 @@
 import {clone,fromData,normalize,applyToData,newPair,newStage,newTask,move,moveTask} from './editor-model.mjs';
 const key='escala:editor:local:v1';
-let model=fromData(DATA), editing=false, history=[], undo=[], redo=[], dragging=null;
+let model=fromData(DATA), editing=true, history=[], undo=[], redo=[], dragging=null;
 let storageWarning='';
 try{const local=JSON.parse(localStorage.getItem(key));if(local){model=normalize(local.model);history=(local.history||[]).slice(-10).map(normalize);}}catch{storageWarning='Não foi possível recuperar o rascunho local.';}
 const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
-const launch=el('button','editor-launch','Editar nos cards');launch.type='button';document.querySelector('header').append(launch);
 const status=el('span','inline-status',storageWarning||'Alterações salvas só neste navegador.');status.setAttribute('role','status');
 function button(parent,label,fn,cls=''){const b=el('button','inline-action '+cls,label);b.type='button';b.onclick=e=>{e.stopPropagation();fn();};parent.append(b);return b;}
 function persist(){try{localStorage.setItem(key,JSON.stringify({model,history}));status.textContent='Rascunho salvo neste navegador.';}catch{status.textContent='Não foi possível salvar. Exporte uma cópia antes de sair.';}}
@@ -50,8 +49,10 @@ if(expandedPairs.has(i)){
 const tools=el('div','inline-pair-tools');section.prepend(tools);button(tools,'↑',()=>change(m=>move(m.pairs,i,-1))).setAttribute('aria-label','Subir par de cards');button(tools,'↓',()=>change(m=>move(m.pairs,i,1))).setAttribute('aria-label','Descer par de cards');remove(tools,()=>change(m=>m.pairs.splice(i,1)));return section;};
 function exportDraft(){const url=URL.createObjectURL(new Blob([JSON.stringify(model,null,2)],{type:'application/json'}));const a=el('a');a.href=url;a.download='escala-rascunho.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 const originalMap=renderMap;
-renderMap=function(){originalMap();if(!editing)return;const bar=el('div','inline-editor-bar');bar.append(el('strong','','Clique no texto do card para editar.'),status);button(bar,'Concluir edição',finish,'primary');button(bar,'Desfazer',()=>{if(!undo.length)return;redo.push(clone(model));model=undo.pop();persist();refresh();},'undo-action').disabled=!undo.length;button(bar,'Refazer',()=>{if(!redo.length)return;undo.push(clone(model));model=redo.pop();persist();refresh();},'redo-action').disabled=!redo.length;button(bar,'＋ Card',()=>{change(m=>m.pairs.push(newPair()));$('map-pair-'+(model.pairs.length-1))?.scrollIntoView({block:'center'});});button(bar,'Exportar',exportDraft);$('mapBody').prepend(bar);};
-function finish(){history=[...history,clone(model)].slice(-10);persist();editing=false;document.body.classList.remove('editing-cards');launch.textContent='Editar nos cards';refresh();}
-launch.onclick=()=>{if(editing){finish();return;}const open=mode===2?[...expandedPairs]:[0];editing=true;document.body.classList.add('editing-cards');launch.textContent='Concluir edição';sync();setMode(2);(open.length?open:[0]).forEach(i=>{if(i<model.pairs.length)expandedPairs.add(i);});refresh();};
-const originalMode=setMode;
-setMode=function(k){if(editing&&k!==2)finish();originalMode(k);};
+renderMap=function(){originalMap();if(!editing)return;const bar=el('div','inline-editor-bar');bar.append(el('strong','','Clique no texto do card para editar.'),status);button(bar,'Desfazer',()=>{if(!undo.length)return;redo.push(clone(model));model=undo.pop();persist();refresh();},'undo-action').disabled=!undo.length;button(bar,'Refazer',()=>{if(!redo.length)return;undo.push(clone(model));model=redo.pop();persist();refresh();},'redo-action').disabled=!redo.length;button(bar,'＋ Card',()=>{change(m=>m.pairs.push(newPair()));$('map-pair-'+(model.pairs.length-1))?.scrollIntoView({block:'center'});});button(bar,'Exportar',exportDraft);$('mapBody').prepend(bar);};
+// Os cards já abrem editáveis; não há modo de edição para ativar.
+document.body.classList.add('editing-cards');
+sync();
+setMode(2);
+if(model.pairs.length)expandedPairs.add(0);
+refresh();
