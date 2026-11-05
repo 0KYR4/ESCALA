@@ -11,7 +11,7 @@ Mapa de serviços com duas visões: **Árvore do Gantt V2** e **Gantt V2 × Trel
 
 O site publicado usa GitHub Pages. Os comentários compartilhados usam Firebase Authentication anônima e Cloud Firestore, no projeto **ESCALA** (`escala-b9a22`), região São Paulo. Firebase Hosting não está configurado.
 
-**O editor possui uma primeira versão local; o salvamento compartilhado ainda não está concluído.** O estado atual foi enviado ao GitHub para permitir a continuidade online. O botão **Editar página** permite criar, editar, excluir e reordenar cards, etapas e atividades, mover atividades por seleção de destino, importar/exportar JSON e recuperar o rascunho neste navegador. **Aplicar à visualização** atualiza as duas visões apenas na sessão atual; após recarregar, abra o editor para recuperar o rascunho e aplique novamente. O histórico local guarda as últimas dez aplicações. Não há sincronização entre visitantes. O site continua exibindo a versão já validada com comentários.
+**O editor possui uma primeira versão local; o salvamento compartilhado ainda não está concluído.** O estado atual foi enviado ao GitHub para permitir a continuidade online. O botão **Editar nos cards** ativa a edição diretamente nos títulos, etapas e atividades da visão Gantt × Trello, sem abrir formulário separado. Há adição, exclusão com confirmação junto ao item, reordenação, movimentação por arraste ou seleção de destino, desfazer/refazer e exportação JSON. O rascunho fica neste navegador; ao recarregar, entre novamente no modo de edição para recuperá-lo. **Concluir edição** mantém as alterações na visualização da sessão. Não há sincronização entre visitantes. O site continua exibindo a versão já validada com comentários.
 
 O próximo objetivo é permitir criar cards, editar títulos e atividades, mudar a ordem e mover itens, salvando a estrutura online. O responsável escolheu permitir edição por **qualquer visitante**. A Supervisão continua sendo controlada somente pelo Gantt; o Trello mostra seu espelho.
 
@@ -53,3 +53,5 @@ O repositório, o site e os comentários são públicos. Não inclua informaçõ
 ## Testar o editor local
 
 Execute `node --test tests/editor-model.test.mjs`. Para abrir o site, use `python3 -m http.server 8000` na raiz do repositório. A prévia antiga `firebase-preview.html` continua sem o editor.
+
+Teste de interface: com o servidor local iniciado e Playwright/Chromium disponíveis, execute `node tests/editor-inline-smoke.cjs`. Use `ESCALA_TEST_URL` para informar outra porta.

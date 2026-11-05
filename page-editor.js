@@ -1,37 +1,57 @@
-import {clone,fromData,normalize,applyToData,newPair,newStage,newTask,move,moveTask,mirrorSupervision} from './editor-model.mjs';
+import {clone,fromData,normalize,applyToData,newPair,newStage,newTask,move,moveTask} from './editor-model.mjs';
 const key='escala:editor:local:v1';
-let model=fromData(DATA), saved=clone(model), history=[], index=0;
-const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
-const launch=el('button','Editar página');launch.type='button';document.querySelector('header').append(launch);
-const dialog=el('dialog');dialog.className='page-editor';dialog.setAttribute('aria-label','Editor da ESCALA');document.body.append(dialog);
-const status=el('p');status.setAttribute('role','status');
-const content=el('div');content.className='editor-content';
-function message(text){status.textContent=text;}
-function persist(){try{localStorage.setItem(key,JSON.stringify({model,history}));message('Rascunho salvo neste navegador. Ainda não foi compartilhado.');}catch{message('Não foi possível salvar neste navegador. Exporte uma cópia antes de sair.');}}
-try{const local=JSON.parse(localStorage.getItem(key));if(local){model=normalize(local.model);history=(local.history||[]).slice(-10).map(normalize);}}catch{message('O rascunho local não pôde ser lido. Os dados originais foram preservados.');}
-function act(fn){try{const next=clone(model);fn(next);model=normalize(next);persist();render();}catch(e){message(e.message);}}
-function button(parent,text,fn){const b=el('button',text);b.type='button';b.onclick=()=>{try{fn();}catch(e){message(e.message);}};parent.append(b);return b;}
-function field(parent,label,value,max,change){const wrap=el('label',label);const input=el('input');input.value=value;input.maxLength=max;input.onchange=()=>{try{const next=clone(model);change(next,input.value);model=normalize(next);persist();}catch(e){input.value=value;message(e.message);}};wrap.append(input);parent.append(wrap);return input;}
-function confirmDelete(parent,fn){button(parent,'Excluir',()=>{const row=el('span','Excluir este item? ');button(row,'Confirmar exclusão',fn);button(row,'Cancelar',()=>row.remove());parent.append(row);});}
-const title=el('h2','Editar página');const note=el('p','Esta versão salva apenas neste navegador. Exporte o arquivo para guardar ou transferir alterações. Supervisão no Trello é sempre um espelho do Gantt.');
-const tools=el('div');tools.className='editor-actions';dialog.append(title,note,status,tools,content);
-button(tools,'Fechar',()=>dialog.close());
-button(tools,'Aplicar à visualização',()=>{const valid=normalize(model);const nextHistory=[...history,clone(saved)].slice(-10);try{localStorage.setItem(key,JSON.stringify({model:valid,history:nextHistory}));}catch{message('Armazenamento indisponível. Exporte antes de aplicar.');return;}history=nextHistory;saved=clone(valid);applyToData(valid,DATA,G,T);setMode(mode);dialog.close();});
-button(tools,'Exportar rascunho',()=>{const blob=new Blob([JSON.stringify(normalize(model),null,2)],{type:'application/json'});const a=el('a');a.href=URL.createObjectURL(blob);a.download='escala-rascunho.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
-const upload=el('input');upload.type='file';upload.accept='.json,application/json';upload.setAttribute('aria-label','Importar rascunho');upload.onchange=async()=>{try{const f=upload.files[0];if(!f)return;if(f.size>2200000)throw Error('Arquivo muito grande.');const next=normalize(JSON.parse(await f.text()));model=next;index=0;persist();render();}catch(e){message('Importação recusada: '+e.message);}finally{upload.value='';}};tools.append(upload);
-button(tools,'Histórico local',()=>{content.replaceChildren();history.forEach((version,i)=>button(content,'Restaurar versão local '+(i+1),()=>{model=clone(version);index=0;persist();render();}));button(content,'Voltar ao editor',render);if(!history.length)content.append(el('p','Nenhuma versão aplicada ainda.'));});
-button(tools,'Adicionar par de cards',()=>act(m=>{m.pairs.push(newPair());index=m.pairs.length-1;}));
-function render(){content.replaceChildren();index=Math.max(0,Math.min(index,model.pairs.length-1));const picker=el('select');picker.setAttribute('aria-label','Par de cards');model.pairs.forEach((p,i)=>{const o=el('option',p.gantt.name);o.value=i;picker.append(o);});picker.value=index;picker.onchange=()=>{index=Number(picker.value);render();};content.append(picker);if(!model.pairs.length){content.append(el('p','Adicione um par para começar.'));return;}const p=model.pairs[index];
-const actions=el('div');content.append(actions);button(actions,'Card ↑',()=>act(m=>{move(m.pairs,index,-1);index=Math.max(0,index-1);}));button(actions,'Card ↓',()=>act(m=>{move(m.pairs,index,1);index=Math.min(m.pairs.length-1,index+1);}));confirmDelete(actions,()=>act(m=>m.pairs.splice(index,1)));
-const kind=el('select');kind.setAttribute('aria-label','Tipo do serviço');for(const [value,label]of [['principal','Principal'],['especializado','Especializado'],['concessionaria','Concessionária']]){const o=el('option',label);o.value=value;kind.append(o);}kind.value=p.kind;kind.onchange=()=>act(m=>{m.pairs[index].kind=kind.value;});content.append(kind);
-const columns=el('div');columns.className='editor-columns';content.append(columns);
-for(const side of ['gantt','trello']){const col=el('section');columns.append(col);col.append(el('h3',side==='gantt'?'Gantt':'Trello'));field(col,'Título',p[side].name,160,(m,v)=>{m.pairs[index][side].name=v;});field(col,'Descrição',p[side].note,2000,(m,v)=>{m.pairs[index][side].note=v;});
-button(col,'Adicionar etapa',()=>act(m=>m.pairs[index][side].stages.push(newStage())));
-p[side].stages.forEach((stage,si)=>{const box=el('fieldset');box.append(el('legend',stage.name));col.append(box);if(side==='trello'&&stage.supervision){box.append(el('p','Somente consulta. Edite a Supervisão no Gantt.'));stage.tasks.forEach(t=>box.append(el('p',t.name)));return;}
-field(box,'Nome da etapa',stage.name,120,(m,v)=>{const s=m.pairs[index][side].stages[si];s.name=v;s.supervision=v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase()==='supervisao';mirrorSupervision(m.pairs[index]);});
-button(box,'Etapa ↑',()=>act(m=>move(m.pairs[index][side].stages,si,-1)));button(box,'Etapa ↓',()=>act(m=>move(m.pairs[index][side].stages,si,1)));confirmDelete(box,()=>act(m=>{m.pairs[index][side].stages.splice(si,1);mirrorSupervision(m.pairs[index]);}));button(box,'Adicionar atividade',()=>act(m=>m.pairs[index][side].stages[si].tasks.push(newTask())));
-stage.tasks.forEach((task,ti)=>{const row=el('div');row.className='editor-task';box.append(row);field(row,'Atividade',task.name,500,(m,v)=>{m.pairs[index][side].stages[si].tasks[ti].name=v;});button(row,'Atividade ↑',()=>act(m=>move(m.pairs[index][side].stages[si].tasks,ti,-1)));button(row,'Atividade ↓',()=>act(m=>move(m.pairs[index][side].stages[si].tasks,ti,1)));confirmDelete(row,()=>act(m=>m.pairs[index][side].stages[si].tasks.splice(ti,1)));
-const target=el('select');target.setAttribute('aria-label','Destino de '+task.name);target.append(el('option','Mover para…'));model.pairs.forEach(pair=>{for(const destSide of ['gantt','trello'])pair[destSide].stages.forEach(dest=>{if(dest.id===stage.id||destSide==='trello'&&dest.supervision||stage.supervision&&(!dest.supervision||destSide!=='gantt'))return;const o=el('option',pair[destSide].name+' / '+destSide+' / '+dest.name);o.value=JSON.stringify({pairId:pair.id,side:destSide,stageId:dest.id});target.append(o);});});target.onchange=()=>{if(target.selectedIndex)act(m=>moveTask(m,{pairId:p.id,side,stageId:stage.id,taskId:task.id},JSON.parse(target.value)));};row.append(target);
-});});}}
-launch.onclick=()=>{render();dialog.showModal();};
-window.addEventListener('beforeunload',e=>{if(JSON.stringify(model)!==JSON.stringify(saved)){e.preventDefault();e.returnValue='';}});
+let model=fromData(DATA), editing=false, history=[], undo=[], redo=[], dragging=null;
+let storageWarning='';
+try{const local=JSON.parse(localStorage.getItem(key));if(local){model=normalize(local.model);history=(local.history||[]).slice(-10).map(normalize);}}catch{storageWarning='Não foi possível recuperar o rascunho local.';}
+const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
+const launch=el('button','editor-launch','Editar nos cards');launch.type='button';document.querySelector('header').append(launch);
+const status=el('span','inline-status',storageWarning||'Alterações salvas só neste navegador.');status.setAttribute('role','status');
+function button(parent,label,fn,cls=''){const b=el('button','inline-action '+cls,label);b.type='button';b.onclick=e=>{e.stopPropagation();fn();};parent.append(b);return b;}
+function persist(){try{localStorage.setItem(key,JSON.stringify({model,history}));status.textContent='Rascunho salvo neste navegador.';}catch{status.textContent='Não foi possível salvar. Exporte uma cópia antes de sair.';}}
+function sync(){applyToData(model,DATA,G,T);}
+function refresh(){const y=$('viewport').scrollTop;sync();renderMap();nav();$('viewport').scrollTop=y;}
+function change(fn,redraw=true){try{const next=clone(model);fn(next);const valid=normalize(next);undo.push(clone(model));undo=undo.slice(-30);redo=[];model=valid;persist();if(redraw)refresh();else{sync();nav();const u=document.querySelector('.undo-action'),r=document.querySelector('.redo-action');if(u)u.disabled=!undo.length;if(r)r.disabled=!redo.length;}}catch(e){status.textContent=e.message;return false;}return true;}
+function remove(parent,fn){button(parent,'Excluir',()=>{if(parent.querySelector('.inline-confirm'))return;const row=el('span','inline-confirm','Excluir? ');button(row,'Sim, excluir',fn);button(row,'Cancelar',()=>row.remove());parent.append(row);},'delete');}
+function editable(node,value,label,max,update){node.replaceChildren(document.createTextNode(value));node.contentEditable='plaintext-only';node.setAttribute('role','textbox');node.setAttribute('aria-label',label);node.setAttribute('aria-multiline','false');node.classList.add('inline-text');node.spellcheck=true;
+ node.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();node.blur();}if(e.key==='Escape'){e.preventDefault();node.textContent=value;node.blur();}e.stopPropagation();};node.onclick=e=>e.stopPropagation();
+ node.onblur=()=>{const text=node.textContent.trim();if(text===value)return;if(text.length>max||!text){status.textContent=`Use de 1 a ${max} caracteres.`;node.textContent=value;return;}if(change(m=>update(m,text),false)){value=text;node.textContent=text; // Atualiza também os espelhos já visíveis sem interromper o cursor nos outros cards.
+ document.querySelectorAll('[data-edit-ref]').forEach(other=>{if(other!==node&&other.dataset.editRef===node.dataset.editRef)other.textContent=text;});
+ }else node.textContent=value;};return node;}
+function pairIn(m,id){return m.pairs.find(p=>p.id===id);}
+function locate(stageId,side){for(const pair of model.pairs){const index=pair[side].stages.findIndex(s=>s.id===stageId);if(index>=0)return {pair,index,stage:pair[side].stages[index]};}}
+const originalStage=renderStage;
+renderStage=function(st,trello=false){const group=originalStage(st,trello);if(!editing)return group;const side=trello?'trello':'gantt',found=locate(st.id,side);if(!found)return group;const {pair,index,stage}=found;const mirrored=trello&&stage.supervision;
+const refStage=mirrored?stage.id.replace(/^mirror-/,''):stage.id;
+const name=group.querySelector('.stage-name > span');name.dataset.editRef=refStage;
+if(mirrored){name.textContent=stage.name+' · SOMENTE CONSULTA';}else{
+ editable(name,stage.name,'Nome da etapa',120,(m,v)=>{const s=pairIn(m,pair.id)[side].stages[index];s.name=v;s.supervision=v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase()==='supervisao';});
+ const tools=el('div','inline-tools');group.querySelector('.stage-name').append(tools);
+ button(tools,'↑',()=>change(m=>move(pairIn(m,pair.id)[side].stages,index,-1))).setAttribute('aria-label','Subir etapa');
+ button(tools,'↓',()=>change(m=>move(pairIn(m,pair.id)[side].stages,index,1))).setAttribute('aria-label','Descer etapa');
+ remove(tools,()=>change(m=>pairIn(m,pair.id)[side].stages.splice(index,1)));
+}
+[...group.querySelectorAll('.stage-task')].forEach((row,ti)=>{const task=stage.tasks[ti],txt=row.querySelector('.stage-task-text');const chip=txt.querySelector('.stage-status');const text=el('span');text.dataset.editRef=task.id;text.textContent=task.name;txt.replaceChildren(text);if(chip)txt.append(chip);if(mirrored)return;
+ editable(text,task.name,'Atividade',500,(m,v)=>{pairIn(m,pair.id)[side].stages[index].tasks[ti].name=v;});
+ const tools=el('div','inline-tools task-tools');row.append(tools);
+ button(tools,'↑',()=>change(m=>move(pairIn(m,pair.id)[side].stages[index].tasks,ti,-1))).setAttribute('aria-label','Subir atividade');
+ button(tools,'↓',()=>change(m=>move(pairIn(m,pair.id)[side].stages[index].tasks,ti,1))).setAttribute('aria-label','Descer atividade');
+ button(tools,'Mover',()=>{if(tools.querySelector('select'))return;const dest=el('select','inline-destination');dest.setAttribute('aria-label','Destino da atividade');dest.append(el('option','','Escolha o destino…'));model.pairs.forEach(p=>{for(const s of ['gantt','trello'])p[s].stages.forEach(target=>{if(target.id===stage.id||s==='trello'&&target.supervision||stage.supervision&&(!target.supervision||s!=='gantt'))return;const o=el('option','',p[s].name+' · '+s+' · '+target.name);o.value=JSON.stringify({pairId:p.id,side:s,stageId:target.id});dest.append(o);});});dest.onchange=()=>{if(dest.value)change(m=>moveTask(m,{pairId:pair.id,side,stageId:stage.id,taskId:task.id},JSON.parse(dest.value)));};tools.append(dest);dest.focus();});
+ remove(tools,()=>change(m=>pairIn(m,pair.id)[side].stages[index].tasks.splice(ti,1)));
+ const handle=el('button','inline-drag','⠿');handle.type='button';handle.draggable=true;handle.setAttribute('aria-label','Arrastar atividade');handle.ondragstart=e=>{dragging={pairId:pair.id,side,stageId:stage.id,taskId:task.id};e.dataTransfer.setData('text/plain',task.id);e.dataTransfer.effectAllowed='move';};handle.ondragend=()=>{dragging=null;document.querySelectorAll('.drop-target').forEach(n=>n.classList.remove('drop-target'));};row.prepend(handle);
+ row.ondragover=e=>{if(dragging){e.preventDefault();e.stopPropagation();row.classList.add('drop-target');}};row.ondragleave=()=>row.classList.remove('drop-target');row.ondrop=e=>{e.preventDefault();e.stopPropagation();if(dragging)change(m=>moveTask(m,dragging,{pairId:pair.id,side,stageId:stage.id},task.id));dragging=null;};
+});
+if(!mirrored){button(group,'＋ Atividade',()=>change(m=>pairIn(m,pair.id)[side].stages[index].tasks.push(newTask())),'add-inline');group.ondragover=e=>{if(dragging)e.preventDefault();};group.ondrop=e=>{e.preventDefault();if(dragging)change(m=>moveTask(m,dragging,{pairId:pair.id,side,stageId:stage.id}));dragging=null;};}return group;};
+const originalPair=makePair;
+makePair=function(mapping,i){const section=originalPair(mapping,i);if(!editing)return section;const pair=model.pairs[i];
+section.querySelectorAll('.map-card-head').forEach((head,j)=>{const side=j?'trello':'gantt';const card=el('div',head.className);card.append(...head.childNodes);head.replaceWith(card);const title=card.querySelector('.map-title');title.dataset.editRef=side+'-'+pair.id;editable(title,pair[side].name,'Título do card '+(j?'Trello':'Gantt'),160,(m,v)=>{pairIn(m,pair.id)[side].name=v;});card.querySelector('.map-hint')?.remove();button(card,expandedPairs.has(i)?'Recolher':'Ver atividades',()=>expandPair(i,!expandedPairs.has(i)));});
+if(expandedPairs.has(i)){
+ const details=section.querySelector('.pair-details');for(const side of ['gantt','trello']){const footer=el('div','inline-card-footer '+side);button(footer,'＋ Etapa',()=>change(m=>pairIn(m,pair.id)[side].stages.push(newStage())));details.append(footer);if(side==='gantt')details.append(el('div','stage-connector',''));}
+}
+const tools=el('div','inline-pair-tools');section.prepend(tools);button(tools,'↑',()=>change(m=>move(m.pairs,i,-1))).setAttribute('aria-label','Subir par de cards');button(tools,'↓',()=>change(m=>move(m.pairs,i,1))).setAttribute('aria-label','Descer par de cards');remove(tools,()=>change(m=>m.pairs.splice(i,1)));return section;};
+function exportDraft(){const url=URL.createObjectURL(new Blob([JSON.stringify(model,null,2)],{type:'application/json'}));const a=el('a');a.href=url;a.download='escala-rascunho.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+const originalMap=renderMap;
+renderMap=function(){originalMap();if(!editing)return;const bar=el('div','inline-editor-bar');bar.append(el('strong','','Clique no texto do card para editar.'),status);button(bar,'Concluir edição',finish,'primary');button(bar,'Desfazer',()=>{if(!undo.length)return;redo.push(clone(model));model=undo.pop();persist();refresh();},'undo-action').disabled=!undo.length;button(bar,'Refazer',()=>{if(!redo.length)return;undo.push(clone(model));model=redo.pop();persist();refresh();},'redo-action').disabled=!redo.length;button(bar,'＋ Card',()=>{change(m=>m.pairs.push(newPair()));$('map-pair-'+(model.pairs.length-1))?.scrollIntoView({block:'center'});});button(bar,'Exportar',exportDraft);$('mapBody').prepend(bar);};
+function finish(){history=[...history,clone(model)].slice(-10);persist();editing=false;document.body.classList.remove('editing-cards');launch.textContent='Editar nos cards';refresh();}
+launch.onclick=()=>{if(editing){finish();return;}const open=mode===2?[...expandedPairs]:[0];editing=true;document.body.classList.add('editing-cards');launch.textContent='Concluir edição';sync();setMode(2);(open.length?open:[0]).forEach(i=>{if(i<model.pairs.length)expandedPairs.add(i);});refresh();};
+const originalMode=setMode;
+setMode=function(k){if(editing&&k!==2)finish();originalMode(k);};

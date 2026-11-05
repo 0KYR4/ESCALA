@@ -1,8 +1,8 @@
-## Atualização — primeira versão local
+## Atualização — edição diretamente nos cards
 
-O `index.html` agora carrega `page-editor.js` e `page-editor.css`, com criação, edição, exclusão com confirmação na página, reordenação e movimentação por destino. Há rascunho recuperável, histórico de dez aplicações e importação/exportação JSON. A Supervisão no Trello permanece somente para consulta. Nenhuma regra Firebase foi alterada ou implantada nesta etapa.
+O botão **Editar nos cards** ativa textos editáveis na própria visão Gantt × Trello. Os títulos, nomes de etapas e textos de atividades são alterados no local, sem formulário ou modal. Controles discretos junto aos itens permitem adicionar, excluir com confirmação, reordenar e mover atividades por arraste ou seleção de destino. A Supervisão do Trello permanece somente para consulta e reflete as alterações do Gantt.
 
-**Limitações:** aplicar altera apenas a visualização nesta sessão. Após recarregar, abra o editor e aplique o rascunho novamente. Ainda faltam salvamento para todos, revisões compartilhadas, aviso de concorrência, duplicação de cards e movimentação por arraste. Os comentários existentes foram preservados. O histórico abaixo descreve o estado anterior e o objetivo completo.
+Há rascunho local recuperável, desfazer/refazer e exportação JSON. **Concluir edição** mantém o resultado na visualização da sessão. Após recarregar, entre novamente no editor para recuperar o rascunho. Nenhuma regra Firebase foi alterada ou implantada. Ainda faltam salvamento para todos, revisões compartilhadas, aviso de concorrência e duplicação de cards. Os comentários foram preservados. O histórico abaixo descreve o estado anterior e o objetivo completo.
 
 # Continuidade — editor visual da ESCALA
 
