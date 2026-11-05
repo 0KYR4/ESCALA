@@ -1,65 +1,60 @@
 # ESCALA
 
-Mapa de serviços com duas visões: **Árvore do Gantt V2** e **Gantt V2 × Trello**.
+Mapa editável com **Árvore do Gantt V2** e **Gantt V2 × Trello**.
 
 - [Abrir o site](https://0kyr4.github.io/ESCALA/)
-- [Editar os arquivos online no GitHub.dev](https://github.dev/0KYR4/ESCALA)
-- [Continuar o editor visual da página](EDITOR_ONLINE.md)
-- [Configuração e testes do Firebase](FIREBASE_COMENTARIOS_SETUP.md)
+- [Editar o código no GitHub.dev](https://github.dev/0KYR4/ESCALA)
+- [Arquitetura e continuidade](EDITOR_ONLINE.md)
+- [Prévia isolada do editor](https://0kyr4.github.io/ESCALA/editor-preview.html)
 
-## Estado deste projeto
+## Editar e salvar para todos
 
-O site publicado usa GitHub Pages. Os comentários compartilhados usam Firebase Authentication anônima e Cloud Firestore, no projeto **ESCALA** (`escala-b9a22`), região São Paulo. Firebase Hosting não está configurado.
+Clique nos títulos, etapas ou atividades para editar diretamente. Use **Novo cartão**, **Cor**, **Tipo do cartão**, **Adicionar etapa** e **Adicionar atividade** para organizar a estrutura. É possível reordenar, mover atividades, desfazer/refazer e exportar JSON.
 
-**O editor possui uma primeira versão local; o salvamento compartilhado ainda não está concluído.** O estado atual foi enviado ao GitHub para permitir a continuidade online. A página abre com os cards da visão Gantt × Trello diretamente editáveis: basta clicar nos títulos, etapas ou atividades e escrever, sem botão ou modo de edição. Há adição, exclusão com confirmação junto ao item, reordenação, movimentação por arraste ou seleção de destino, desfazer/refazer e exportação JSON. O rascunho é salvo e recuperado automaticamente neste navegador após recarregar. Não há sincronização entre visitantes. O site continua exibindo a versão já validada com comentários.
+Clique em **Salvar para todos** para publicar o rascunho no Firebase. Aguarde a mensagem **Salvo online · versão …**. As outras sessões recebem a estrutura em tempo real. Alterar os cards não gera commits no GitHub: os dados compartilhados ficam no Firestore.
 
-O próximo objetivo é permitir criar cards, editar títulos e atividades, mudar a ordem e mover itens, salvando a estrutura online. O responsável escolheu permitir edição por **qualquer visitante**. A Supervisão continua sendo controlada somente pelo Gantt; o Trello mostra seu espelho.
+As alterações ainda não publicadas ficam neste navegador. Se outra pessoa publicar enquanto você edita, o rascunho será preservado e aparecerá **Revisar atualização**. Você pode carregar a versão online ou confirmar a publicação do próprio rascunho sobre ela; uma cópia da versão substituída fica no histórico.
 
-## Editar online
+Em **Histórico**, escolha uma versão e confirme sua restauração como rascunho. Use **Salvar para todos** para torná-la a versão atual. O painel mostra as dez últimas versões anteriores; as demais continuam armazenadas no banco.
 
-1. Abra [GitHub.dev](https://github.dev/0KYR4/ESCALA), com uma conta que tenha permissão de escrita neste repositório.
-2. Edite os arquivos e faça um commit para a branch `main` pelo painel de controle de versão.
-3. Acompanhe a publicação em [Actions](https://github.com/0KYR4/ESCALA/actions).
-4. Confira o resultado no [site](https://0kyr4.github.io/ESCALA/).
+**Qualquer visitante pode editar**, conforme a escolha do responsável. A Supervisão é controlada exclusivamente pelo Gantt e espelhada no Trello.
 
-Também é possível abrir um arquivo no GitHub e usar o botão de edição. Alterar `firestore.rules` no repositório **não publica automaticamente** as regras no Firebase: elas precisam ser implantadas separadamente.
+## Hospedagem e dados
 
-## Arquivos
+- Site e código: GitHub Pages / GitHub.
+- Dados: Cloud Firestore e Authentication anônima, projeto **ESCALA** (`escala-b9a22`).
+- Firestore Standard `(default)`, região `southamerica-east1` (São Paulo), plano Spark.
+- Firebase Hosting não está configurado.
+- A página principal não carrega os widgets de comentários. Os comentários antigos e a prévia `firebase-preview.html` foram preservados.
 
-| Arquivo | Finalidade |
+O repositório e o conteúdo são públicos. Não inclua dados internos, dados de clientes, senhas, tokens administrativos ou chaves de conta de serviço. A configuração web contém identificadores públicos do app.
+
+## Arquivos principais
+
+| Arquivo | Função |
 | --- | --- |
-| `index.html` | Página principal, estilos e dados originais do mapa |
-| `firebase-preview.html` | Prévia da integração de comentários |
-| `firebase-comments.js` | Envio, leitura, edição e exclusão dos comentários online |
-| `firebase-config.js` | Configuração pública do app web Firebase |
-| `firestore.rules` | Regras atualmente usadas para comentários |
-| `editor-model.mjs` | Modelo inicial do editor visual, ainda sem interface ou persistência |
-| `tests/firebase-smoke.mjs` | Testes de integração dos comentários contra o Firebase real |
-| `.github/workflows/deploy-pages.yml` | Publicação do site no GitHub Pages |
+| `index.html` | Página principal e estrutura inicial |
+| `page-editor-online.js` | Edição nos cards, rascunhos, conflitos, salvamento e histórico |
+| `editor-cloud.mjs` | Firebase, transações e revisões |
+| `editor-model.mjs` | Validação, movimentação e espelho de Supervisão |
+| `page-editor.css` | Estilos do editor |
+| `editor-preview.html` | Mesma implementação em uma estrutura de teste separada |
+| `firestore.rules` | Regras do editor, histórico e comentários antigos |
+| `firebase-config.js` | Configuração pública do Firebase |
+| `page-editor.js` | Implementação local anterior, preservada como referência |
 
-## Verificações realizadas
+## Verificações
 
-- Comentários: 20 verificações de integração no Firebase real; uma execução com `--verify-ui` passou em 21 verificações, incluindo leitura de um comentário criado na interface por outra sessão.
-- Interface dos comentários: envio, persistência após recarga, edição, cancelamento e confirmação de exclusão.
-- Estrutura Gantt/Trello preservada na publicação dos comentários.
-- O editor visual ainda precisa ser implementado e validado; os testes dos comentários não validam esse futuro recurso.
+Em 05/11/2026: **8 testes locais** passaram. Os testes contra o Firebase real passaram em **21 verificações básicas**, **22 com leitura de uma gravação feita pela página** e **23 com publicação conflitante de uma sessão independente**. São variações do mesmo roteiro, não somas de testes distintos.
 
-O teste `node tests/firebase-smoke.mjs` cria e remove dados e contas temporárias no Firebase real. A opção `--verify-ui` exige o comentário temporário específico previsto no script; esse comentário já foi removido após a validação anterior.
+Na interface da prévia foram verificados: salvar, recarregar, conflito sem perda do rascunho, carregar a versão de outra sessão, restaurar pelo histórico, criar e salvar um novo card, recuperar esse card após recarga e restaurar a estrutura original da prévia.
 
-## Dados públicos
+- Testes locais: `node --test tests/editor-model.test.mjs tests/editor-cloud.test.mjs`.
+- Integração real: `node tests/editor-cloud-smoke.mjs`. Cria e limpa uma estrutura e contas temporárias sob caminhos `test-*`.
+- As opções `--verify-preview` e `--write-preview-conflict` são testes dirigidos: dependem do estado previsto da prévia. A segunda altera a prévia, nunca a estrutura principal.
 
-O repositório, o site e os comentários são públicos. Não inclua informações internas, dados de clientes, senhas, tokens administrativos ou arquivos de conta de serviço. A configuração web em `firebase-config.js` contém identificadores públicos; a proteção do banco depende das regras do Firestore.
+## Publicar alterações de código
 
-## Testar o editor local
+Faça commit na branch `main` e acompanhe [Actions](https://github.com/0KYR4/ESCALA/actions). Atualize a versão nos URLs dos scripts quando necessário para evitar cache antigo.
 
-Execute `node --test tests/editor-model.test.mjs`. Para abrir o site, use `python3 -m http.server 8000` na raiz do repositório. A prévia antiga `firebase-preview.html` continua sem o editor.
-
-Teste de interface: com o servidor local iniciado e Playwright/Chromium disponíveis, execute `node tests/editor-inline-smoke.cjs`. Use `ESCALA_TEST_URL` para informar outra porta.
-
-A página principal não carrega mais os controles de comentários: os botões “+” e os painéis extras foram removidos. Os dados existentes no Firebase e a prévia antiga foram preservados.
-
-## Criar e organizar cartões
-
-Use **Novo cartão** no topo ou **Novo cartão abaixo** no card existente. O novo par abre expandido com o título selecionado para escrever. O controle **Cor** em cada cabeçalho permite escolher cores independentes para Gantt e Trello; **Tipo do cartão** escolhe Principal, Especializado ou Concessionária.
-
-**Adicionar etapa** oferece Organização, Produção, Supervisão, Revisão, Entrega ou Outra etapa. Supervisão é criada no Gantt e espelhada automaticamente no Trello, com no máximo uma por par. Cores, tipos e etapas ficam no rascunho local e na exportação JSON. Para testar esse fluxo, execute `node tests/editor-card-smoke.cjs` com o servidor local e Playwright/Chromium disponíveis.
+Um commit em `firestore.rules` **não implanta as regras no Firebase**. Elas precisam ser publicadas separadamente no projeto correto. Consulte `EDITOR_ONLINE.md` antes de alterar o esquema.

@@ -1,3 +1,7 @@
+# Atualização — editor compartilhado
+
+Em 05/11/2026, o editor recebeu salvamento da estrutura no Firestore, controle de revisão e histórico. Veja README.md e EDITOR_ONLINE.md para a operação atual. Este documento preserva a configuração e os testes anteriores dos comentários. Os comentários existentes não foram apagados; a página principal usa o editor de cards. As regras atuais também incluem escala_boards e histórico.
+
 # ESCALA — comentários online
 
 ## Situação

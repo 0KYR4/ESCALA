@@ -1,67 +1,66 @@
-## Atualização — edição diretamente nos cards
+# Editor online — estado atual
 
-A página abre na visão Gantt × Trello com textos diretamente editáveis: basta clicar e escrever, sem botão ou modo de edição. Os títulos, nomes de etapas e textos de atividades são alterados no local, sem formulário ou modal. Controles discretos junto aos itens permitem adicionar, excluir com confirmação, reordenar e mover atividades por arraste ou seleção de destino. A Supervisão do Trello permanece somente para consulta e reflete as alterações do Gantt.
+## Decisões do responsável
 
-Há rascunho local recuperável, desfazer/refazer e exportação JSON. **Novo cartão** cria um par expandido, **Cor** personaliza cada cabeçalho e **Tipo do cartão** altera sua categoria. **Adicionar etapa** permite escolher inclusive Supervisão, criada no Gantt e espelhada no Trello. As alterações aparecem imediatamente e o rascunho é recuperado automaticamente após recarregar. Nenhuma regra Firebase foi alterada ou implantada. Ainda faltam salvamento para todos, revisões compartilhadas, aviso de concorrência e duplicação de cards. Os controles de comentários foram removidos da página principal; os dados no Firebase e a prévia antiga foram preservados. O histórico abaixo descreve o estado anterior e o objetivo completo.
+A própria página deve permitir criar cards, editar texto, organizar etapas e atividades, mudar cores/categorias e mover itens. O acesso de edição compartilhada foi liberado expressamente para **qualquer visitante**. Authentication anônima identifica as sessões sem exigir conta pessoal.
 
-# Continuidade — editor visual da ESCALA
+**Supervisão permanece controlada somente no Gantt.** O Trello mostra o espelho dessa etapa, sem edição independente.
 
-## Pedido e decisão de acesso
+## Implementação
 
-Transformar a própria página em uma estrutura editável: adicionar cards, editar textos, alterar ordem, mover atividades e reorganizar etapas. Os comentários isolados não atendem a esse objetivo.
+- `page-editor-online.js` mantém a edição direta existente e acrescenta **Salvar para todos**, conflitos, rascunho recuperável e histórico.
+- `editor-cloud.mjs` usa o SDK Firebase modular 12.5.0, Authentication anônima, snapshots confirmados pelo servidor e transações.
+- `editor-model.mjs` normaliza dados, valida tamanhos e IDs, preserva cores/descrições e espelha a Supervisão.
+- O modelo compartilhado atualiza `DATA`, `G` e `T`. Mudanças online também atualizam a Árvore do Gantt.
+- `index.html` usa a estrutura compartilhada `main`; `editor-preview.html` usa `preview`, isolada da principal.
+- A implementação local anterior `page-editor.js` está preservada, mas deixa de ser o módulo ativo da página principal.
 
-**Decisão expressa do responsável:** qualquer visitante pode editar a estrutura compartilhada. Não adicionar exigência de login Google ou lista de editores sem uma nova solicitação. Authentication anônima pode continuar identificando as sessões de forma transparente.
+## Banco
 
-O trabalho foi interrompido por solicitação do responsável para subir o estado atual ao GitHub, com documentação, e continuar a edição online. Não considerar o editor pronto.
+Projeto Firebase `escala-b9a22`, Firestore Standard `(default)`, São Paulo. Hospedagem do site continua no GitHub Pages.
 
-## O que existe
+Documento `escala_boards/{board}`:
 
-- Site funcional no GitHub Pages: `https://0kyr4.github.io/ESCALA/`.
-- Firebase real: projeto `escala-b9a22`, app ESCALA, Firestore Standard `(default)`, `southamerica-east1`, plano Spark.
-- Authentication anônima ativada; domínio `0kyr4.github.io` autorizado.
-- Comentários online já publicados e testados. Os dados dos serviços continuam embutidos no `index.html`.
-- **Novo arquivo `editor-model.mjs`:** modelo inicial de pares Gantt/Trello, importação dos dados atuais, normalização, criação de cards/etapas/atividades, reordenação e movimentação de atividades.
+- `schema`: 1.
+- `revision`: inteiro crescente.
+- `payload`: JSON normalizado da estrutura, limitado a 650000 bytes no cliente e nas regras.
+- `updatedAt`: timestamp do servidor.
+- `updatedBy`: UID da sessão que gravou.
+- `backupId`: identificador da cópia anterior criada na transação.
 
-## Limites do estado atual
+Cada gravação cria `escala_boards/{board}/history/{backupId}`, com `revision`, `payload` anterior, `savedAt` e `savedBy`, e incrementa a revisão principal na mesma transação. A primeira gravação arquiva a estrutura inicial como versão 0.
 
-- `editor-model.mjs` não é importado pelo site e ainda não possui interface.
-- Não há gravação compartilhada da estrutura editável nem histórico de versões no Firestore.
-- As regras atuais autorizam apenas a coleção de comentários. Elas não autorizam alterações no modelo dos cards.
-- Não foi criada uma coleção de edição nem migrada a estrutura para o banco.
-- Os testes reais existentes cobrem os comentários. No modelo novo passaram verificações de sintaxe, importação dos 25 pares, normalização, movimentação básica, espelhamento da Supervisão, bloqueio de movimentação da Supervisão para o Trello e sincronização com `DATA`, `G` e `T`. Essas verificações não substituem testes completos da futura interface e persistência.
+O cliente compara a revisão de base com a versão atual. Uma gravação baseada em revisão antiga falha, preservando o rascunho. Não existe mesclagem automática de duas estruturas: a resolução é explícita e a versão substituída fica arquivada.
 
-## Comportamento pretendido
+## Segurança e recuperação
 
-1. Exibir um botão **Editar página** na própria tela.
-2. Permitir adicionar, duplicar, remover e reordenar pares de cards.
-3. Editar títulos, descrições, nomes e ordem das etapas e textos das atividades.
-4. Mover atividades por arraste e por controles acessíveis, inclusive entre etapas/cards quando permitido.
-5. Manter alterações em um rascunho até **Salvar para todos**; avisar quando outra pessoa publicar durante uma edição.
-6. Salvar revisões e oferecer restauração de versões para recuperar alterações acidentais.
-7. Atualizar as duas visões e a navegação a partir do mesmo modelo, sem duplicar dados independentes.
-8. Remover os controles de comentários da interface principal se forem substituídos pelo editor. Não apagar comentários existentes automaticamente.
+As regras exigem autenticação para a estrutura, validam os campos e tamanhos do envelope, exigem revisão crescente e uma cópia fiel da versão anterior na mesma transação. As versões arquivadas não podem ser alteradas. A estrutura principal não pode ser apagada pelo cliente. Apenas caminhos `test-*` permitem limpeza pelos testes.
 
-## Regra de Supervisão
+O JSON interno é validado pelo modelo no cliente; as regras verificam o envelope e o tamanho, não interpretam o JSON. Como qualquer visitante foi autorizado a editar, um visitante malicioso pode tentar publicar conteúdo inválido ou indesejado. A interface rejeita modelos inválidos, preserva a estrutura local e oferece restauração de versões. O histórico e a exportação são mecanismos de recuperação, não uma restrição de quem pode editar.
 
-**Somente o Gantt controla a Supervisão.** A etapa no Trello é derivada do Gantt e não pode ser editada de forma independente. O modelo inicial espelha essa etapa após normalizar ou mover atividades e rejeita destinos de Supervisão no lado Trello.
+Textos editados são apresentados como texto; não devem ser interpolados em HTML. Não armazenar dados privados neste editor público. UIDs não são identidades verificadas.
 
-Atividades de Supervisão só podem sair de sua etapa para outra Supervisão do lado Gantt. Revisar essa regra e testar suas bordas ao construir a interface.
+I've set up prototype Security Rules to keep the data in Firestore safe. They are designed to be secure for authenticated anonymous collaboration with bounded payloads, atomic backups, and monotonic revisions. However, you should review and verify them before broadly sharing your app. If you'd like, I can help you harden these rules.
 
-## Próximos passos
+## Rascunhos e compatibilidade
 
-- Revisar e testar o modelo: adicionar/remover/reordenar, mover no mesmo grupo e entre grupos, IDs duplicados, limites de tamanho e espelhamento da Supervisão.
-- Criar a interface de edição diretamente nos cards, com confirmação dentro da página para exclusões. Evitar `prompt()`/`confirm()` nativos: eles bloquearam o navegador integrado nos testes anteriores.
-- Implementar persistência com revisão/controle de concorrência, cópia de segurança e recuperação de rascunhos. Não sobrescrever silenciosamente alterações feitas por outro visitante.
-- Definir um esquema de banco limitado à estrutura da ESCALA. Validar campos e tamanhos nas regras, tanto em criação quanto atualização; negar os demais caminhos. Edição pública foi autorizada, mas isso não autoriza acesso a outras coleções ou credenciais.
-- Implantar e testar regras no Firebase real. Um commit com regras não as implanta no serviço.
-- Testar em uma prévia e em sessões independentes, limpar os dados temporários e só então publicar a interface em `index.html`.
-- Atualizar este documento e o README com o resultado efetivamente verificado.
+A chave local da estrutura principal continua `escala:editor:local:v1`. O rascunho inclui o modelo, a revisão de base e a indicação de alterações não publicadas. Rascunhos anteriores são preservados; se houver uma versão online diferente, o visitante decide qual conteúdo carregar/publicar.
 
-## Atenções de implementação
+Durante um salvamento, novas edições locais não são descartadas. Snapshots em cache ou com escritas pendentes não confirmam publicação. Se o servidor estiver indisponível, a página mantém o rascunho e apresenta reconexão.
 
-- O script principal usa as variáveis globais `DATA`, `G` e `T`. O modelo pode atualizar seus conteúdos, preservando os vínculos usados pelas funções existentes.
-- `applyToData()` é uma base para essa sincronização. Revisar nomes de card e etapa, campos originais preservados e a classificação dos serviços.
-- Há contagens fixas na interface atual (como “25 pares” e “16 serviços principais”); torná-las dinâmicas.
-- Há uso legado de `innerHTML` na apresentação de detalhes. Antes de aceitar texto editável do banco, substituir as interpolações por `textContent`/criação segura de elementos.
-- Tratar snapshots inválidos com recuperação de versão; não renderizar HTML de visitantes.
-- Os nomes de domínio, chaves públicas do app e IDs do Firebase podem constar no cliente; chaves privadas e tokens administrativos não podem constar neste repositório público.
+## Testes realizados em 05/11/2026
+
+- 8 testes locais do modelo e da serialização, incluindo limites UTF-8.
+- 21 verificações básicas no Firebase real com duas sessões de UIDs distintos.
+- 22 verificações na variação que lê o conteúdo enviado pela interface de outra sessão.
+- 23 verificações na variação que também publica uma atualização conflitante de outra sessão.
+- Bloqueios: sobrescrita de revisão antiga, falta de backup, campos extras, payload grande, salto de revisão, UID forjado, acesso sem autenticação, histórico adulterado, alteração de versões, exclusão da estrutura principal e caminhos não autorizados.
+- Concorrência: duas tentativas simultâneas produziram uma única gravação aceita.
+- Interface: persistência após recarga, preservação de rascunho conflitante, carregamento de versão online, restauração de histórico e salvamento/recuperação de novo card.
+- A prévia foi restaurada à estrutura original após os testes.
+
+## Operação
+
+Publicar código na `main` aciona o GitHub Pages. Publicar regras é uma operação separada no Firebase. Testar mudanças de persistência na prévia antes de ativá-las na principal. Não apagar documentos compartilhados para simular testes.
+
+O histórico exibe as dez últimas cópias anteriores; não há expurgo automático. Duplicação de cards e importação JSON continuam como possíveis melhorias, não requisitos concluídos nesta entrega.
