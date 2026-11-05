@@ -1,6 +1,61 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Estruturas compartilhadas: schema(1), revision(int crescente), payload(JSON,
+    // até 650 kB), updatedAt(timestamp do servidor), updatedBy(uid), backupId.
+    // Cada atualização arquiva a estrutura anterior em history na mesma transação.
+    // Leitura/edição por qualquer sessão anônima foi autorizada pelo responsável.
+    function signedIn() { return request.auth != null; }
+    function validBoard(board) {
+      return board in ['main','preview'] || board.matches('^test-[a-z0-9-]{1,40}$');
+    }
+    function isTest(board) { return board.matches('^test-[a-z0-9-]{1,40}$'); }
+    function validPayload(value) { return value is string && value.size() > 0 && value.size() <= 650000; }
+    function validState(data) {
+      return data.keys().hasAll(['schema','revision','payload','updatedAt','updatedBy','backupId'])
+        && data.keys().hasOnly(['schema','revision','payload','updatedAt','updatedBy','backupId'])
+        && data.schema == 1
+        && data.revision is int && data.revision >= 1 && data.revision <= 2147483647
+        && validPayload(data.payload)
+        && data.updatedAt == request.time
+        && data.updatedBy is string && data.updatedBy.size() <= 128 && data.updatedBy == request.auth.uid
+        && data.backupId is string && data.backupId.matches('^[A-Za-z0-9_-]{1,80}$');
+    }
+    function validHistory(data) {
+      return data.keys().hasAll(['revision','payload','savedAt','savedBy'])
+        && data.keys().hasOnly(['revision','payload','savedAt','savedBy'])
+        && data.revision is int && data.revision >= 0 && data.revision < 2147483647
+        && validPayload(data.payload)
+        && data.savedAt == request.time
+        && data.savedBy is string && data.savedBy.size() <= 128 && data.savedBy == request.auth.uid;
+    }
+    match /escala_boards/{board} {
+      function archived() {
+        let path=/databases/$(database)/documents/escala_boards/$(board)/history/$(request.resource.data.backupId);
+        return !exists(path) && existsAfter(path)
+          && getAfter(path).data.savedAt == request.time
+          && getAfter(path).data.savedBy == request.auth.uid;
+      }
+      allow read: if signedIn() && validBoard(board);
+      allow create: if signedIn() && validBoard(board) && validState(request.resource.data)
+        && request.resource.data.revision == 1 && archived()
+        && getAfter(/databases/$(database)/documents/escala_boards/$(board)/history/$(request.resource.data.backupId)).data.revision == 0;
+      allow update: if signedIn() && validBoard(board) && validState(request.resource.data)
+        && request.resource.data.revision == resource.data.revision + 1 && archived()
+        && getAfter(/databases/$(database)/documents/escala_boards/$(board)/history/$(request.resource.data.backupId)).data.revision == resource.data.revision
+        && getAfter(/databases/$(database)/documents/escala_boards/$(board)/history/$(request.resource.data.backupId)).data.payload == resource.data.payload;
+      // Limpeza restrita a dados de testes; a estrutura publicada não pode ser apagada.
+      allow delete: if signedIn() && isTest(board);
+      match /history/{archive} {
+        allow read: if signedIn() && validBoard(board);
+        allow create: if signedIn() && validBoard(board) && validHistory(request.resource.data)
+          && getAfter(/databases/$(database)/documents/escala_boards/$(board)).data.backupId == archive
+          && getAfter(/databases/$(database)/documents/escala_boards/$(board)).data.revision == request.resource.data.revision + 1
+          && getAfter(/databases/$(database)/documents/escala_boards/$(board)).data.updatedBy == request.auth.uid;
+        allow update: if false;
+        allow delete: if signedIn() && isTest(board);
+      }
+    }
     match /escala_comments/{commentId} {
       allow read: if true;
       allow create: if request.auth != null
