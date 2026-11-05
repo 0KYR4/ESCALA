@@ -1,1 +1,26 @@
 .inline-editor-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;background:#fff;border:1px solid #d5e5e4;border-radius:10px;padding:12px 16px;margin-bottom:18px;color:#214b50;font-size:12px}.inline-status{flex:1;min-width:150px;font-size:11px;color:#657b84}.inline-action{font:inherit;font-size:11px;color:#496575;border:1px solid transparent;background:transparent;border-radius:5px;cursor:pointer;padding:5px 7px}.inline-action:hover{background:#e9f3f1;color:#11675e;border-color:#b7d9d1}.inline-action:disabled{opacity:.35;cursor:default}.inline-action.primary{background:#167d73;color:white;padding:8px 12px}.inline-confirm{display:inline-flex;align-items:center;flex-wrap:wrap;color:#a13e38;font-size:11px;background:#fff4ed;padding:3px;border-radius:6px}.inline-text{cursor:text;display:inline-block;min-width:30px;white-space:pre-wrap;overflow-wrap:anywhere;border-radius:4px;outline:1px dashed #82b5ae80;outline-offset:3px;transition:background .15s;max-width:100%}.inline-text:hover{background:#e7f3ef}.inline-text:focus{background:#fff;outline:2px solid #218b7c;box-shadow:0 0 0 5px #218b7c12}.editing-cards .map-card-head{cursor:default}.editing-cards .stage-name{flex-wrap:wrap;align-items:center}.editing-cards .stage-task{position:relative}.inline-tools{display:flex;align-items:center;flex-wrap:wrap;gap:2px}.task-tools{opacity:0;transition:opacity .15s;margin-top:6px}.stage-task:hover .task-tools,.stage-task:focus-within .task-tools{opacity:1}.inline-pair-tools{display:flex;align-items:center;justify-content:flex-end;padding-bottom:4px}.inline-card-footer{padding:8px}.add-inline{margin:7px 10px;color:#248372}.inline-destination{font:inherit;font-size:11px;max-width:100%;padding:5px;background:#fff;color:#214b50;border:1px solid #b7d9d1;border-radius:5px}.inline-drag{position:absolute;left:0;top:7px;background:none;border:0;color:#6c9390;cursor:grab;opacity:0}.stage-task:hover .inline-drag,.stage-task:focus-within .inline-drag{opacity:1}.editing-cards .stage-task{padding-left:22px}.drop-target{outline:2px solid #218b7c;outline-offset:-2px;background:#e7f3ef}.editing-cards .paired-trello.stage-supervision{opacity:.8}@media(hover:none){.task-tools,.inline-drag{opacity:1}}@media(max-width:820px){.inline-editor-bar{padding:10px}.inline-action{min-height:32px}.editing-cards .aligned-stage-grid{grid-template-columns:minmax(0,1fr) 14px minmax(0,1fr)}.inline-text{font-size:inherit}.inline-tools{gap:0}.inline-action{padding:5px}}
+
+/* Texto, etiqueta e ações ocupam linhas distintas dentro de cada atividade. */
+.editing-cards .aligned-stage-grid{row-gap:18px;column-gap:18px}
+.editing-cards .map-pair{padding:16px;margin-bottom:24px}
+.editing-cards .map-card-head{padding:20px}
+.editing-cards .map-title{font-size:16px;line-height:1.5}
+.editing-cards .map-sub{line-height:1.7;margin-top:10px}
+.editing-cards .map-card-head>.inline-action{margin-top:12px}
+.editing-cards .stage-name{padding:14px 16px;gap:12px}
+.editing-cards .stage-name>.inline-text{line-height:1.6}
+.editing-cards .stage-name>.inline-tools{margin-left:auto;gap:6px}
+.editing-cards .stage-task{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:16px 18px 12px 34px;line-height:1.65}
+.editing-cards .stage-task:before{display:none}
+.editing-cards .stage-task-text{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;font-size:13px;line-height:1.65}
+.editing-cards .stage-task-text>.inline-text{display:block;width:100%;padding:2px 0}
+.editing-cards .stage-task-text>.stage-status{display:block;align-self:flex-start;margin:0;padding:3px 8px;line-height:1.5;font-size:10px;max-width:100%}
+.editing-cards .inline-text{outline-color:transparent;outline-offset:3px}
+.editing-cards .inline-text:hover{outline-color:#82b5ae80}
+.editing-cards .inline-text:focus{outline:2px solid #218b7c}
+.editing-cards .task-tools{gap:8px;margin:0;min-height:26px}
+.editing-cards .inline-drag{left:7px;top:18px;font-size:16px;padding:0 3px}
+.editing-cards .add-inline{margin:10px 16px 14px;padding:8px 10px}
+.editing-cards .inline-card-footer{padding:12px 6px}
+@media(max-width:1100px){.editing-cards .aligned-stage-grid{column-gap:10px}.editing-cards .map-pair{padding:10px}.editing-cards .map-card-head{padding:16px}}
+@media(max-width:820px){.editing-cards .map-pair{padding:8px}.editing-cards .stage-task{padding:14px 12px 12px 26px}.editing-cards .stage-name{padding:12px;gap:10px}.editing-cards .stage-task-text{font-size:12px}.editing-cards .task-tools{gap:4px}.editing-cards .map-title{font-size:14px}}
