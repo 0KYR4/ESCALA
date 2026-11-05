@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {fromData,normalize,clone,moveTask,applyToData,newPair,newStage,newTask} from '../editor-model.mjs';
+const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const data=JSON.parse(html.match(/const DATA=([\s\S]*?);\r?\nconst \$/)[1]);
+const initial=()=>fromData(data);
+test('imports 25 pairs and mirrors supervision',()=>{const m=initial();assert.equal(m.pairs.length,25);for(const p of m.pairs){const g=p.gantt.stages.find(s=>s.supervision);if(g)assert.deepEqual(p.trello.stages.find(s=>s.supervision).tasks,g.tasks);}});
+test('rejects duplicated card and task IDs and oversized names',()=>{const m=initial();m.pairs[1].gantt.id=m.pairs[0].gantt.id;assert.throws(()=>normalize(m),/duplicados/);const n=initial();n.pairs[0].gantt.name='x'.repeat(161);assert.throws(()=>normalize(n),/inválido/);const t=initial();t.pairs[0].gantt.stages[0].tasks.push(clone(t.pairs[0].gantt.stages[0].tasks[0]));assert.throws(()=>normalize(t),/duplicados/);});
+test('moves tasks between cards and rejects supervision escape',()=>{const m=initial(),a=m.pairs[0],b=m.pairs[1],s=a.gantt.stages[0],d=b.gantt.stages[0],task=s.tasks[0];moveTask(m,{pairId:a.id,side:'gantt',stageId:s.id,taskId:task.id},{pairId:b.id,side:'gantt',stageId:d.id});assert.equal(d.tasks.at(-1).id,task.id);const sup=a.gantt.stages.find(s=>s.supervision);assert.throws(()=>moveTask(m,{pairId:a.id,side:'gantt',stageId:sup.id,taskId:sup.tasks[0].id},{pairId:b.id,side:'gantt',stageId:d.id}),/Supervisão/);});
+test('creates new content and applies descriptions without losing original model',()=>{const m=initial(),p=newPair();p.gantt.note='Descrição';const s=newStage();s.tasks.push(newTask());p.gantt.stages.push(s);m.pairs.push(p);const out=clone(data),g={},t={};applyToData(m,out,g,t);assert.equal(out.mapping.length,26);assert.deepEqual(g[p.gantt.id].observacoes,['Descrição']);assert.equal(initial().pairs.length,25);});

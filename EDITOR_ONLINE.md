@@ -1,3 +1,9 @@
+## Atualização — primeira versão local
+
+O `index.html` agora carrega `page-editor.js` e `page-editor.css`, com criação, edição, exclusão com confirmação na página, reordenação e movimentação por destino. Há rascunho recuperável, histórico de dez aplicações e importação/exportação JSON. A Supervisão no Trello permanece somente para consulta. Nenhuma regra Firebase foi alterada ou implantada nesta etapa.
+
+**Limitações:** aplicar altera apenas a visualização nesta sessão. Após recarregar, abra o editor e aplique o rascunho novamente. Ainda faltam salvamento para todos, revisões compartilhadas, aviso de concorrência, duplicação de cards e movimentação por arraste. Os comentários existentes foram preservados. O histórico abaixo descreve o estado anterior e o objetivo completo.
+
 # Continuidade — editor visual da ESCALA
 
 ## Pedido e decisão de acesso

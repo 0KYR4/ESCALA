@@ -21,11 +21,14 @@ export function mirrorSupervision(pair) {
 export function normalize(input) {
   if(input?.schema !== 1) throw Error('Formato de estrutura desconhecido.');
   const used = new Set();
+  const cardIds = {gantt:new Set(),trello:new Set()};
   const unique = value => { const key=id(value);if(used.has(key))throw Error('Identificadores duplicados.');used.add(key);return key; };
   const pairs=list(input.pairs,100,'Cards').map(pair=>{
     const out={id:unique(pair.id),kind:kinds.includes(pair.kind)?pair.kind:'principal'};
     for(const side of ['gantt','trello']) {
       const card=pair[side];
+      if(cardIds[side].has(card.id))throw Error('Identificadores de cards duplicados.');
+      cardIds[side].add(card.id);
       out[side]={id:id(card.id),name:str(card.name,160,'Nome do card'),note:str(card.note||'',2000,'Descrição',true),stages:[]};
       out[side].stages=list(card.stages,30,'Etapas').filter(s=>side==='gantt'||(!s.supervision&&!supName(s.name))).map(stage=>({
         id:unique(stage.id),name:stage.supervision||supName(stage.name)?'Supervisão':str(stage.name,120,'Nome da etapa'),
@@ -58,7 +61,7 @@ export function applyToData(model,data,G,T) {
   Object.keys(G).forEach(k=>delete G[k]);Object.keys(T).forEach(k=>delete T[k]);
   for(const pair of valid.pairs) {
     for(const side of ['gantt','trello']) {
-      const item=clone(pair[side]);item.kind=pair.kind;
+      const item=clone(pair[side]);item.kind=pair.kind;item.observacoes=item.note?[item.note]:[];
       item.stages.forEach(stage=>{stage.controle=stage.supervision?(side==='gantt'?'Gantt exclusivo':'Somente consulta do Gantt'):(side==='gantt'?'Gantt V2':'Trello');});
       if(side==='gantt'){G[item.id]=item;if(pair.kind==='concessionaria')data.extra[item.id]=item;else data.gantt.push(item);}
       else{T[item.id]=item;data.trello.push(item);}
