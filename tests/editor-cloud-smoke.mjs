@@ -57,6 +57,11 @@ try{
    const result=await req(api+root+'/escala_boards/preview','GET',undefined,b);check(result,200,'read preview created by website from independent session');
    assert.equal(JSON.parse(decode(result.data).payload).pairs[0].gantt.name,'VALIDAÇÃO ONLINE ESCALA');
  }
+ if(process.argv.includes('--write-preview-conflict')){
+   const name=root+'/escala_boards/preview',result=await req(api+name,'GET',undefined,b);check(result,200,'read current preview from independent session');
+   const before=decode(result.data),next=JSON.parse(before.payload);next.pairs[0].gantt.name='VERSÃO DE OUTRA SESSÃO';const id=crypto.randomUUID();
+   check(await commit([archiveWrite(name+'/history/'+id,{revision:before.revision,payload:before.payload,savedBy:b.localId}),stateWrite(name,{schema:1,revision:before.revision+1,payload:JSON.stringify(next),updatedBy:b.localId,backupId:id})],b),200,'publish conflicting preview from independent session');
+ }
  console.log(`All ${checks} live shared-editor checks passed.`);
 }finally{
  if(sessions[0]){

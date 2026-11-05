@@ -12,7 +12,7 @@ const status=el('span','inline-status',storageWarning||'Conectando ao salvamento
 function button(parent,label,fn,cls=''){const b=el('button','inline-action '+cls,label);b.type='button';b.onclick=e=>{e.stopPropagation();fn();};parent.append(b);return b;}
 function persist(mark=true){if(mark){serial++;dirty=serializeModel(model,normalize)!==syncedPayload;}try{localStorage.setItem(key,JSON.stringify({model,history,dirty,baseRevision}));storageWarning='';}catch{storageWarning='O rascunho não coube neste navegador. Exporte uma cópia.';}cloudStatus();}
 function sync(){applyToData(model,DATA,G,T);}
-function refresh(){const y=$('viewport').scrollTop;sync();renderMap();nav();$('viewport').scrollTop=y;}
+function refresh(){const y=$('viewport').scrollTop;sync();if(mode===2){renderMap();nav();$('viewport').scrollTop=y;}else{const selected=selection;tree();nav();fit();if(selected&&(selected.type==='gantt'?G[selected.id]:selected.type==='trello'?T[selected.id]:null))select(selected.id,selected.type);}}
 function change(fn,redraw=true){try{const next=clone(model);fn(next);const valid=normalize(next);undo.push(clone(model));undo=undo.slice(-30);redo=[];model=valid;persist();if(redraw)refresh();else{sync();nav();const u=document.querySelector('.undo-action'),r=document.querySelector('.redo-action');if(u)u.disabled=!undo.length;if(r)r.disabled=!redo.length;}}catch(e){status.textContent=e.message;return false;}return true;}
 function remove(parent,fn){button(parent,'Excluir',()=>{if(parent.querySelector('.inline-confirm'))return;const row=el('span','inline-confirm','Excluir? ');button(row,'Sim, excluir',fn);button(row,'Cancelar',()=>row.remove());parent.append(row);},'delete');}
 function editable(node,value,label,max,update){node.replaceChildren(document.createTextNode(value));node.contentEditable='plaintext-only';node.setAttribute('role','textbox');node.setAttribute('aria-label',label);node.setAttribute('aria-multiline','false');node.classList.add('inline-text');node.spellcheck=true;
@@ -76,7 +76,7 @@ function addCard(index=model.pairs.length){
  const title=card?.querySelector('[aria-label="Título do card Gantt"]');if(title){title.focus({preventScroll:true});const selection=window.getSelection(),range=document.createRange();range.selectNodeContents(title);selection.removeAllRanges();selection.addRange(range);}
 }
 function cloudStatus(){
- status.textContent=storageWarning||cloudError||(saving?'Salvando online…':conflict?'Outra versão foi publicada. Seu rascunho foi preservado.':!loaded?'Conectando ao salvamento online…':dirty?'Rascunho neste navegador · clique em Salvar para todos.':'Salvo online · versão '+baseRevision+' · todos veem esta estrutura.');
+ status.textContent=storageWarning||cloudError||(saving?'Salvando online…':conflict?'Outra versão foi publicada. Seu rascunho foi preservado.':!loaded?'Conectando ao salvamento online…':dirty?'Rascunho neste navegador · clique em Salvar para todos.':baseRevision===0?'Estrutura inicial · clique em Salvar para todos para publicá-la.':'Salvo online · versão '+baseRevision+' · todos veem esta estrutura.');
  document.querySelectorAll('.cloud-save').forEach(b=>b.disabled=!loaded||!cloud||saving||conflict||!dirty&&baseRevision!==0);
  document.querySelectorAll('.cloud-latest').forEach(b=>b.hidden=!conflict);
  document.querySelectorAll('.cloud-retry').forEach(b=>b.hidden=!cloudError);
