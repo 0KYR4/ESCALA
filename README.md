@@ -55,3 +55,5 @@ O repositório, o site e os comentários são públicos. Não inclua informaçõ
 Execute `node --test tests/editor-model.test.mjs`. Para abrir o site, use `python3 -m http.server 8000` na raiz do repositório. A prévia antiga `firebase-preview.html` continua sem o editor.
 
 Teste de interface: com o servidor local iniciado e Playwright/Chromium disponíveis, execute `node tests/editor-inline-smoke.cjs`. Use `ESCALA_TEST_URL` para informar outra porta.
+
+A página principal não carrega mais os controles de comentários: os botões “+” e os painéis extras foram removidos. Os dados existentes no Firebase e a prévia antiga foram preservados.
