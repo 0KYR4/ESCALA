@@ -1,4 +1,4 @@
-import {clone,fromData,normalize,applyToData,newPair,newStage,newTask,move,moveTask} from './editor-model.mjs';
+import {clone,fromData,normalize,applyToData,newPair,newStage,newTask,move,moveTask} from './editor-model.mjs?v=cards-7';
 const key='escala:editor:local:v1';
 let model=fromData(DATA), editing=true, history=[], undo=[], redo=[], dragging=null;
 let storageWarning='';
@@ -42,14 +42,37 @@ if(mirrored){name.textContent=stage.name+' · SOMENTE CONSULTA';}else{
 if(!mirrored){button(group,'Adicionar atividade',()=>change(m=>pairIn(m,pair.id)[side].stages[index].tasks.push(newTask())),'add-inline');group.ondragover=e=>{if(dragging)e.preventDefault();};group.ondrop=e=>{e.preventDefault();if(dragging)change(m=>moveTask(m,dragging,{pairId:pair.id,side,stageId:stage.id}));dragging=null;};}return group;};
 const originalPair=makePair;
 makePair=function(mapping,i){const section=originalPair(mapping,i);if(!editing)return section;const pair=model.pairs[i];
-section.querySelectorAll('.map-card-head').forEach((head,j)=>{const side=j?'trello':'gantt';const card=el('div',head.className);card.append(...head.childNodes);head.replaceWith(card);const title=card.querySelector('.map-title');title.dataset.editRef=side+'-'+pair.id;editable(title,pair[side].name,'Título do card '+(j?'Trello':'Gantt'),160,(m,v)=>{pairIn(m,pair.id)[side].name=v;});card.querySelector('.map-hint')?.remove();button(card,expandedPairs.has(i)?'Recolher':'Ver atividades',()=>expandPair(i,!expandedPairs.has(i)));});
+section.querySelectorAll('.map-card-head').forEach((head,j)=>{const side=j?'trello':'gantt';const card=el('div',head.className);card.append(...head.childNodes);head.replaceWith(card);const title=card.querySelector('.map-title');title.dataset.editRef=side+'-'+pair.id;editable(title,pair[side].name,'Título do card '+(j?'Trello':'Gantt'),160,(m,v)=>{pairIn(m,pair.id)[side].name=v;});card.querySelector('.map-hint')?.remove();
+const paint=color=>{card.style.backgroundColor=color+'18';card.style.borderColor=color+'80';card.style.borderTop='5px solid '+color;};
+if(pair[side].color)paint(pair[side].color);
+const colors=el('label','card-color-control','Cor');const picker=el('input');picker.type='color';picker.value=pair[side].color||(j?'#49aa94':'#6293c5');picker.setAttribute('aria-label','Cor do card '+(j?'Trello':'Gantt'));picker.oninput=()=>paint(picker.value);picker.onchange=()=>change(m=>{pairIn(m,pair.id)[side].color=picker.value;},false);colors.append(picker);card.append(colors);
+button(card,expandedPairs.has(i)?'Recolher':'Ver atividades',()=>expandPair(i,!expandedPairs.has(i)));});
 if(expandedPairs.has(i)){
- const details=section.querySelector('.pair-details');for(const side of ['gantt','trello']){const footer=el('div','inline-card-footer '+side);button(footer,'Adicionar etapa',()=>change(m=>pairIn(m,pair.id)[side].stages.push(newStage())));details.append(footer);if(side==='gantt')details.append(el('div','stage-connector',''));}
+ const details=section.querySelector('.pair-details');for(const side of ['gantt','trello']){const footer=el('div','inline-card-footer '+side);button(footer,'Adicionar etapa',()=>{
+ const existing=footer.querySelector('.stage-type-menu');if(existing){existing.remove();return;}
+ const menu=el('div','stage-type-menu');menu.setAttribute('role','group');menu.setAttribute('aria-label','Escolher tipo de etapa');
+ for(const name of ['Organização','Produção','Supervisão','Revisão','Entrega','Outra etapa']){
+ const sup=name==='Supervisão',target=sup?'gantt':side;
+ const choice=button(menu,name,()=>{if(change(m=>pairIn(m,pair.id)[target].stages.push(newStage(name==='Outra etapa'?'Nova etapa':name)))){const stages=$('map-pair-'+i)?.querySelectorAll('.paired-'+target+' [aria-label="Nome da etapa"]');if(name==='Outra etapa')stages?.[stages.length-1]?.focus();}});
+ if(sup&&pair.gantt.stages.some(s=>s.supervision)){choice.disabled=true;choice.title='Este card já possui Supervisão.';}
+ }
+ button(menu,'Cancelar',()=>menu.remove());footer.append(menu);
+});details.append(footer);if(side==='gantt')details.append(el('div','stage-connector',''));}
 }
-const tools=el('div','inline-pair-tools');section.prepend(tools);button(tools,'↑',()=>change(m=>move(m.pairs,i,-1))).setAttribute('aria-label','Subir par de cards');button(tools,'↓',()=>change(m=>move(m.pairs,i,1))).setAttribute('aria-label','Descer par de cards');remove(tools,()=>change(m=>m.pairs.splice(i,1)));return section;};
+const tools=el('div','inline-pair-tools');section.prepend(tools);
+const kind=el('select','card-kind');kind.setAttribute('aria-label','Tipo do cartão');
+for(const [value,label] of [['principal','Principal'],['especializado','Especializado'],['concessionaria','Concessionária']]){const option=el('option','',label);option.value=value;kind.append(option);}kind.value=pair.kind;kind.onchange=()=>change(m=>{pairIn(m,pair.id).kind=kind.value;});tools.append(kind);
+button(tools,'↑',()=>change(m=>move(m.pairs,i,-1))).setAttribute('aria-label','Subir par de cards');button(tools,'↓',()=>change(m=>move(m.pairs,i,1))).setAttribute('aria-label','Descer par de cards');remove(tools,()=>change(m=>m.pairs.splice(i,1)));button(tools,'Novo cartão abaixo',()=>addCard(i+1));return section;};
 function exportDraft(){const url=URL.createObjectURL(new Blob([JSON.stringify(model,null,2)],{type:'application/json'}));const a=el('a');a.href=url;a.download='escala-rascunho.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function addCard(index=model.pairs.length){
+ const open=[...expandedPairs];
+ if(!change(m=>m.pairs.splice(index,0,newPair()),false))return;
+ expandedPairs.clear();open.forEach(i=>expandedPairs.add(i>=index?i+1:i));expandedPairs.add(index);$('q').value='';refresh();
+ const card=$('map-pair-'+index);card?.scrollIntoView({block:'center',behavior:'smooth'});
+ const title=card?.querySelector('[aria-label="Título do card Gantt"]');if(title){title.focus({preventScroll:true});const selection=window.getSelection(),range=document.createRange();range.selectNodeContents(title);selection.removeAllRanges();selection.addRange(range);}
+}
 const originalMap=renderMap;
-renderMap=function(){originalMap();if(!editing)return;const bar=el('div','inline-editor-bar');bar.append(status);button(bar,'Desfazer',()=>{if(!undo.length)return;redo.push(clone(model));model=undo.pop();persist();refresh();},'undo-action').disabled=!undo.length;button(bar,'Refazer',()=>{if(!redo.length)return;undo.push(clone(model));model=redo.pop();persist();refresh();},'redo-action').disabled=!redo.length;button(bar,'Adicionar card',()=>{change(m=>m.pairs.push(newPair()));$('map-pair-'+(model.pairs.length-1))?.scrollIntoView({block:'center'});});button(bar,'Exportar',exportDraft);$('mapBody').prepend(bar);};
+renderMap=function(){originalMap();if(!editing)return;const bar=el('div','inline-editor-bar');bar.append(status);button(bar,'Desfazer',()=>{if(!undo.length)return;redo.push(clone(model));model=undo.pop();persist();refresh();},'undo-action').disabled=!undo.length;button(bar,'Refazer',()=>{if(!redo.length)return;undo.push(clone(model));model=redo.pop();persist();refresh();},'redo-action').disabled=!redo.length;button(bar,'Novo cartão',()=>addCard(),'new-card-action');button(bar,'Exportar',exportDraft);$('mapBody').prepend(bar);};
 // Os cards já abrem editáveis; não há modo de edição para ativar.
 document.body.classList.add('editing-cards');
 sync();

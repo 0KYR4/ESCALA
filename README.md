@@ -57,3 +57,9 @@ Execute `node --test tests/editor-model.test.mjs`. Para abrir o site, use `pytho
 Teste de interface: com o servidor local iniciado e Playwright/Chromium disponíveis, execute `node tests/editor-inline-smoke.cjs`. Use `ESCALA_TEST_URL` para informar outra porta.
 
 A página principal não carrega mais os controles de comentários: os botões “+” e os painéis extras foram removidos. Os dados existentes no Firebase e a prévia antiga foram preservados.
+
+## Criar e organizar cartões
+
+Use **Novo cartão** no topo ou **Novo cartão abaixo** no card existente. O novo par abre expandido com o título selecionado para escrever. O controle **Cor** em cada cabeçalho permite escolher cores independentes para Gantt e Trello; **Tipo do cartão** escolhe Principal, Especializado ou Concessionária.
+
+**Adicionar etapa** oferece Organização, Produção, Supervisão, Revisão, Entrega ou Outra etapa. Supervisão é criada no Gantt e espelhada automaticamente no Trello, com no máximo uma por par. Cores, tipos e etapas ficam no rascunho local e na exportação JSON. Para testar esse fluxo, execute `node tests/editor-card-smoke.cjs` com o servidor local e Playwright/Chromium disponíveis.

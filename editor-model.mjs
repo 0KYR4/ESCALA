@@ -30,6 +30,10 @@ export function normalize(input) {
       if(cardIds[side].has(card.id))throw Error('Identificadores de cards duplicados.');
       cardIds[side].add(card.id);
       out[side]={id:id(card.id),name:str(card.name,160,'Nome do card'),note:str(card.note||'',2000,'Descrição',true),stages:[]};
+      if(card.color!==undefined){
+        if(typeof card.color!=='string'||!/^#[0-9a-fA-F]{6}$/.test(card.color))throw Error('Cor do card inválida.');
+        out[side].color=card.color.toLowerCase();
+      }
       out[side].stages=list(card.stages,30,'Etapas').filter(s=>side==='gantt'||(!s.supervision&&!supName(s.name))).map(stage=>({
         id:unique(stage.id),name:stage.supervision||supName(stage.name)?'Supervisão':str(stage.name,120,'Nome da etapa'),
         supervision:stage.supervision===true||supName(stage.name),
@@ -47,7 +51,7 @@ export function fromData(data) {
   const g=Object.fromEntries([...data.gantt,...Object.values(data.extra)].map(x=>[x.id,x]));
   const t=Object.fromEntries(data.trello.map(x=>[x.id,x]));
   function card(item,side) {
-    return {id:item.id,name:item.name,note:(item.observacoes||[]).join('\n'),stages:item.stages.map((stage,i)=>({
+    return {id:item.id,name:item.name,...(item.color?{color:item.color}:{}),note:(item.observacoes||[]).join('\n'),stages:item.stages.map((stage,i)=>({
       id:`${side}-${item.id}-s${i}`,name:stage.name,supervision:supName(stage.name),tasks:stage.tasks.map((task,j)=>({
         id:`${side}-${item.id}-s${i}-t${j}`,name:typeof task==='string'?task:task.name,status:task.status||'',nota_origem:task.nota_origem||''
       }))
