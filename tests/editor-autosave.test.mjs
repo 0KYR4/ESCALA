@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createDraftAutosave} from '../editor-autosave.mjs';
+function harness(write=async()=>{}){const jobs=new Map();let next=0;const saves=[];const saver=createDraftAutosave({write:async v=>{saves.push(v);await write(v);},schedule:fn=>{jobs.set(++next,fn);return next;},cancel:id=>jobs.delete(id)});return {saver,jobs,saves,async run(){const work=[...jobs.values()];jobs.clear();for(const fn of work)await fn();}};}
+const draft=(payload='A')=>({payload,baseRevision:1});
+test('idle and identical contents never create extra writes',async()=>{const h=harness();assert.equal(h.jobs.size,0);h.saver.remember(draft());for(let minute=0;minute<10;minute++){h.saver.queue(draft());await h.run();}assert.equal(h.saves.length,0);h.saver.queue(draft('B'));await h.run();for(let minute=0;minute<10;minute++){h.saver.queue(draft('B'));await h.run();}assert.equal(h.saves.length,1);});
+test('rapid edits coalesce and reverting before save does not write',async()=>{const h=harness();h.saver.remember(draft());h.saver.queue(draft('B'));h.saver.queue(draft('C'));await h.run();assert.deepEqual(h.saves,[draft('C')]);h.saver.queue(draft('B'));h.saver.queue(draft('C'));await h.run();assert.equal(h.saves.length,1);});
+test('edits during save are queued without overlapping requests',async()=>{let resolve;const h=harness(()=>new Promise(r=>{resolve=r;}));h.saver.queue(draft());const running=h.run();h.saver.queue(draft('B'));assert.equal(h.jobs.size,0);resolve();await running;assert.equal(h.jobs.size,1);h.saver.stop();assert.equal(h.jobs.size,0);});
+test('failed writes do not retry on an idle timer',async()=>{const h=harness(async()=>{throw Error('offline');});h.saver.queue(draft());await h.run();assert.equal(h.jobs.size,0);assert.equal(h.saves.length,1);});

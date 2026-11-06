@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {fromData,clone,newTask,normalize} from '../editor-model.mjs';
+import {compareModels} from '../editor-compare.mjs';
+const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const seed=()=>fromData(JSON.parse(html.match(/const DATA=([\s\S]*?);\r?\nconst \$/)[1]));
+test('identical models have no differences and comparison is read only',()=>{const m=seed(),copy=clone(m);assert.deepEqual(compareModels(m,copy),[]);assert.deepEqual(m,copy);});
+test('text, labels and card attributes show old and current values',()=>{const old=seed(),now=clone(old);now.pairs[0].gantt.name='Novo título';now.pairs[0].gantt.stages[0].tasks[0].tags=['Urgente'];const changes=compareModels(old,now);assert.equal(changes.length,2);assert.ok(changes.some(c=>c.fields.some(f=>f.name==='Título'&&f.after==='Novo título')));assert.ok(changes.some(c=>c.fields.some(f=>f.name==='Etiquetas'&&f.after==='Urgente')));});
+test('insertions do not create false order changes',()=>{const old=seed(),now=clone(old);now.pairs[0].gantt.stages[0].tasks.unshift(newTask());const changes=compareModels(old,now);assert.equal(changes.length,1);assert.equal(changes[0].action,'added');});
+test('moves are recognized by stable ID and removals are reported',()=>{const old=seed(),now=clone(old),p=now.pairs[0];const moved=p.gantt.stages[0].tasks.shift();p.gantt.stages[1].tasks.push(moved);p.gantt.stages[0].tasks.pop();const changes=compareModels(old,now);assert.ok(changes.some(c=>c.action==='changed'&&c.fields.some(f=>f.name==='Local')));assert.equal(changes.filter(c=>c.action==='removed').length,1);});
+test('supervision changes are shown once, not repeated for the Trello mirror',()=>{const old=seed(),now=clone(old),s=now.pairs[0].gantt.stages.find(s=>s.supervision);s.tasks[0].name='Revisão da liderança';assert.equal(compareModels(old,normalize(now)).length,1);});
+test('task reorder is reported',()=>{const old=seed(),now=clone(old),tasks=now.pairs[0].gantt.stages[0].tasks;[tasks[0],tasks[1]]=[tasks[1],tasks[0]];assert.equal(compareModels(old,now).filter(c=>c.fields.some(f=>f.name==='Ordem')).length,2);});

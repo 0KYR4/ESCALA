@@ -37,7 +37,7 @@ export function normalize(input) {
       out[side].stages=list(card.stages,30,'Etapas').filter(s=>side==='gantt'||(!s.supervision&&!supName(s.name))).map(stage=>({
         id:unique(stage.id),name:stage.supervision||supName(stage.name)?'Supervisão':str(stage.name,120,'Nome da etapa'),
         supervision:stage.supervision===true||supName(stage.name),
-        tasks:list(stage.tasks,150,'Atividades').map(task=>({id:unique(task.id),name:str(task.name,500,'Atividade'),status:str(task.status||'',120,'Etiqueta',true),nota_origem:str(task.nota_origem||'',2000,'Origem',true)}))
+        tasks:list(stage.tasks,150,'Atividades').map(task=>({id:unique(task.id),name:str(task.name,500,'Atividade'),status:str(task.status||'',120,'Etiqueta',true),...(task.tags?{tags:list(task.tags,10,'Etiquetas').map(tag=>str(tag,120,'Etiqueta'))}:{}),nota_origem:str(task.nota_origem||'',2000,'Origem',true)}))
       }));
     }
     if(out.gantt.stages.filter(isSupervision).length>1)throw Error('Cada card pode ter uma única etapa de Supervisão.');
@@ -53,7 +53,7 @@ export function fromData(data) {
   function card(item,side) {
     return {id:item.id,name:item.name,...(item.color?{color:item.color}:{}),note:(item.observacoes||[]).join('\n'),stages:item.stages.map((stage,i)=>({
       id:`${side}-${item.id}-s${i}`,name:stage.name,supervision:supName(stage.name),tasks:stage.tasks.map((task,j)=>({
-        id:`${side}-${item.id}-s${i}-t${j}`,name:typeof task==='string'?task:task.name,status:task.status||'',nota_origem:task.nota_origem||''
+        id:`${side}-${item.id}-s${i}-t${j}`,name:typeof task==='string'?task:task.name,status:task.status||'',...(task.tags?{tags:clone(task.tags)}:{}),nota_origem:task.nota_origem||''
       }))
     }))};
   }

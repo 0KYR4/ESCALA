@@ -9,13 +9,13 @@ Mapa editável com **Árvore do Gantt V2** e **Gantt V2 × Trello**.
 
 ## Editar e salvar para todos
 
-Clique nos títulos, etapas ou atividades para editar diretamente. Use **Novo cartão**, **Cor**, **Tipo do cartão**, **Adicionar etapa** e **Adicionar atividade** para organizar a estrutura. É possível reordenar, mover atividades, desfazer/refazer e exportar JSON.
+Clique nos títulos, etapas ou atividades para editar diretamente. Use **Novo cartão**, **Cor**, **Tipo de etapa**, **Adicionar etapa** e **Adicionar atividade** para organizar a estrutura. É possível reordenar, mover atividades, desfazer/refazer e exportar JSON.
 
 Clique em **Salvar para todos** para publicar o rascunho no Firebase. Aguarde a mensagem **Salvo online · versão …**. As outras sessões recebem a estrutura em tempo real. Alterar os cards não gera commits no GitHub: os dados compartilhados ficam no Firestore.
 
-As alterações ainda não publicadas ficam neste navegador. Se outra pessoa publicar enquanto você edita, o rascunho será preservado e aparecerá **Revisar atualização**. Você pode carregar a versão online ou confirmar a publicação do próprio rascunho sobre ela; uma cópia da versão substituída fica no histórico.
+As alterações ainda não publicadas ficam neste navegador e em um rascunho privado no servidor, salvo somente quando o conteúdo muda. O rascunho pertence à identidade anônima deste navegador; não há login entre dispositivos. Se outra pessoa publicar enquanto você edita, o rascunho será preservado e aparecerá **Revisar atualização**. Você pode carregar a versão online ou confirmar a publicação do próprio rascunho sobre ela; uma cópia da versão substituída fica no histórico.
 
-Em **Histórico**, escolha uma versão e confirme sua restauração como rascunho. Use **Salvar para todos** para torná-la a versão atual. O painel mostra as dez últimas versões anteriores; as demais continuam armazenadas no banco.
+Em **Histórico**, use **Comparar com o atual** para ver diferenças com seu rascunho, ou escolha uma versão e confirme sua restauração como rascunho. Use **Salvar para todos** para torná-la a versão atual. O painel mostra as dez últimas versões anteriores; as demais continuam armazenadas no banco.
 
 **Qualquer visitante pode editar**, conforme a escolha do responsável. A Supervisão é controlada exclusivamente pelo Gantt e espelhada no Trello.
 
@@ -45,11 +45,11 @@ O repositório e o conteúdo são públicos. Não inclua dados internos, dados d
 
 ## Verificações
 
-Em 05/11/2026: **8 testes locais** passaram. Os testes contra o Firebase real passaram em **21 verificações básicas**, **22 com leitura de uma gravação feita pela página** e **23 com publicação conflitante de uma sessão independente**. São variações do mesmo roteiro, não somas de testes distintos.
+Em 05/11/2026: **19 testes locais** passaram. Os testes contra o Firebase real passaram em **21 verificações básicas**, **22 com leitura de uma gravação feita pela página** e **23 com publicação conflitante de uma sessão independente**. São variações do mesmo roteiro, não somas de testes distintos.
 
 Na interface da prévia foram verificados: salvar, recarregar, conflito sem perda do rascunho, carregar a versão de outra sessão, restaurar pelo histórico, criar e salvar um novo card, recuperar esse card após recarga e restaurar a estrutura original da prévia.
 
-- Testes locais: `node --test tests/editor-model.test.mjs tests/editor-cloud.test.mjs`.
+- Testes locais: `node --test tests/editor-model.test.mjs tests/editor-cloud.test.mjs tests/editor-autosave.test.mjs tests/editor-compare.test.mjs`.
 - Integração real: `node tests/editor-cloud-smoke.mjs`. Cria e limpa uma estrutura e contas temporárias sob caminhos `test-*`.
 - As opções `--verify-preview` e `--write-preview-conflict` são testes dirigidos: dependem do estado previsto da prévia. A segunda altera a prévia, nunca a estrutura principal.
 
@@ -58,3 +58,6 @@ Na interface da prévia foram verificados: salvar, recarregar, conflito sem perd
 Faça commit na branch `main` e acompanhe [Actions](https://github.com/0KYR4/ESCALA/actions). Atualize a versão nos URLs dos scripts quando necessário para evitar cache antigo.
 
 Um commit em `firestore.rules` **não implanta as regras no Firebase**. Elas precisam ser publicadas separadamente no projeto correto. Consulte `EDITOR_ONLINE.md` antes de alterar o esquema.
+
+
+A revisão da configuração pública e das restrições de API está em [SECURITY.md](SECURITY.md).

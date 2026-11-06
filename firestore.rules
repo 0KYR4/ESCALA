@@ -46,6 +46,26 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/escala_boards/$(board)/history/$(request.resource.data.backupId)).data.payload == resource.data.payload;
       // Limpeza restrita a dados de testes; a estrutura publicada não pode ser apagada.
       allow delete: if signedIn() && isTest(board);
+      // Rascunho privado por sessão autenticada. Não altera a versão compartilhada.
+      // schema=1; payload JSON até 650 kB; baseRevision int; ownerUid imutável;
+      // updatedAt timestamp do servidor. Sem campos extras e sem gravações idênticas.
+      match /drafts/{owner} {
+        function ownsDraft(){return signedIn() && validBoard(board) && request.auth.uid == owner;}
+        function validDraft(data){
+          return data.keys().hasAll(['schema','payload','baseRevision','ownerUid','updatedAt'])
+            && data.keys().hasOnly(['schema','payload','baseRevision','ownerUid','updatedAt'])
+            && data.schema == 1 && validPayload(data.payload)
+            && data.baseRevision is int && data.baseRevision >= 0 && data.baseRevision <= 2147483647
+            && data.ownerUid == owner && data.updatedAt == request.time;
+        }
+        allow get: if ownsDraft();
+        allow create: if ownsDraft() && validDraft(request.resource.data);
+        allow update: if ownsDraft() && validDraft(request.resource.data)
+          && resource.data.ownerUid == request.resource.data.ownerUid
+          && (resource.data.payload != request.resource.data.payload
+            || resource.data.baseRevision != request.resource.data.baseRevision);
+        allow delete: if ownsDraft();
+      }
       match /history/{archive} {
         allow read: if signedIn() && validBoard(board);
         allow create: if signedIn() && validBoard(board) && validHistory(request.resource.data)

@@ -64,3 +64,19 @@ Durante um salvamento, novas edições locais não são descartadas. Snapshots e
 Publicar código na `main` aciona o GitHub Pages. Publicar regras é uma operação separada no Firebase. Testar mudanças de persistência na prévia antes de ativá-las na principal. Não apagar documentos compartilhados para simular testes.
 
 O histórico exibe as dez últimas cópias anteriores; não há expurgo automático. Duplicação de cards e importação JSON continuam como possíveis melhorias, não requisitos concluídos nesta entrega.
+
+## Rascunho automático no servidor (prévia local)
+
+As alterações continuam gravadas localmente e também vão para `escala_boards/{board}/drafts/{uid}` após 1,5 segundo sem novas alterações confirmadas. O envio é disparado por edição, não por intervalo. Conteúdo e revisão iguais ao último envio não geram gravação; editar e desfazer antes do envio também não grava. Requisições são serializadas e uma falha não inicia repetição contínua. Reconectar ou voltar à rede permite nova tentativa.
+
+O rascunho é privado da identidade anônima do navegador e pode ser recuperado nessa identidade; isso não equivale a login entre dispositivos. Limpar os dados do navegador perde o acesso a essa identidade. O botão **Salvar para todos** continua sendo a única publicação da estrutura compartilhada. Abrir sem alterações não cria rascunho novo.
+
+As regras validam campos, limites, propriedade, revisão e timestamp, e rejeitam atualizações idênticas. O teste `tests/editor-draft-smoke.mjs` verifica gravação e leitura pelo dono, bloqueio de outro usuário e de acesso sem autenticação, rejeição de conteúdo igual/campos extras/revisão inválida, e que o documento compartilhado não mudou. Usa dados descartáveis e remove os dados e identidades de teste.
+
+`tests/editor-autosave.test.mjs` verifica inatividade, deduplicação, consolidação de edições, ausência de requisições simultâneas e ausência de repetição automática em falha.
+
+## Comparação do histórico
+
+Cada versão tem **Comparar com o atual**. O painel compara a versão selecionada com a estrutura atual, incluindo o rascunho, sem restaurar ou gravar dados. Mostra itens adicionados/removidos e valores anteriores/atuais de títulos, descrições, cores, etiquetas, origem, tipo, posição e local. IDs estáveis reconhecem movimentos; inserir um item não acusa os demais como reordenados. A Supervisão espelhada no Trello não duplica as diferenças.
+
+Verificação: `node --test tests/editor-compare.test.mjs` cobre versões idênticas, edição de campos, inserção, remoção, movimentação, ordem e espelho de Supervisão.

@@ -15,6 +15,7 @@ export async function connectEditor({config,board='main',seed,onVersion,onError}
   const instance=app.getApps().length?app.getApp():app.initializeApp(config);
   const identity=(await auth.signInAnonymously(auth.getAuth(instance))).user;
   const firestore=db.getFirestore(instance),ref=db.doc(firestore,'escala_boards',board);
+  const draft=db.doc(ref,'drafts',identity.uid);
   const stop=db.onSnapshot(ref,{includeMetadataChanges:true},snap=>{
     // Cache local não confirma o estado compartilhado nem autoriza uma gravação.
     if(snap.metadata.fromCache||snap.metadata.hasPendingWrites)return;
@@ -22,6 +23,10 @@ export async function connectEditor({config,board='main',seed,onVersion,onError}
   },onError);
   return {
     stop,
+    async readDraft(){const snapshot=await db.getDocFromServer(draft);return snapshot.exists()?snapshot.data():null;},
+    async saveDraft({payload,baseRevision}) {
+      await db.setDoc(draft,{schema:1,payload,baseRevision:baseRevision??0,ownerUid:identity.uid,updatedAt:db.serverTimestamp()});
+    },
     async save(payload,expectedRevision) {
       const archive=db.doc(db.collection(ref,'history'));
       return db.runTransaction(firestore,async transaction=>{
@@ -31,6 +36,7 @@ export async function connectEditor({config,board='main',seed,onVersion,onError}
         const revision=previous.revision+1;
         transaction.set(archive,{revision:previous.revision,payload:previous.payload,savedAt:db.serverTimestamp(),savedBy:identity.uid});
         transaction.set(ref,{schema:1,revision,payload,updatedAt:db.serverTimestamp(),updatedBy:identity.uid,backupId:archive.id});
+        transaction.delete(draft);
         return revision;
       });
     },
